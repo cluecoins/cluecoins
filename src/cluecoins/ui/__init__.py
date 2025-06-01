@@ -1,3 +1,4 @@
+import subprocess
 import sys
 from collections import defaultdict
 from pathlib import Path
@@ -19,6 +20,12 @@ from cluecoins.storage import Storage
 LOG = RichLog()
 LOG.styles.height = 10
 
+
+WELCOME_TEXT = """
+Welcome to Cluecoins!
+
+To get started, select "Open File" from the File menu to open a database file.
+"""
 
 class BaseScreen(Static):
     """Base screen class with common navigation functionality."""
@@ -76,8 +83,12 @@ class MenuBar(Container):
 
 
 class MainScreen(BaseScreen):
+    def __init__(self):
+        super().__init__()
+        self._text = Static(WELCOME_TEXT, id='welcome_text')
+
     def compose(self) -> ComposeResult:
-        yield Static('')
+        yield self._text
 
 
 class FetchQuotesScreen(BaseScreen):
@@ -196,12 +207,25 @@ class CluecoinsApp(App):
             id='status_bar',
         )
         self._db_path: Path | None = None
+        self._db_hint: str = ''
         self._menu_bar = MenuBar()
 
     def set_db_path(self, db_path: Path) -> None:
         self._db_path = db_path
+
+        res = subprocess.run(
+            ('file', str(db_path)),
+            capture_output=True,
+            text=True,
+            check=True,
+        )
         LOG.write(f'connected to `{db_path}`')
-        self._status_bar.update(f'connected to {db_path.name}')
+        LOG.write(res.stdout.split(':')[1].strip())
+        self._status_bar.update(f'connected to `{db_path.name}`')
+        self.app.query_one('#welcome_text').update(
+            f'Welcome to Cluecoins!\n\n'
+            f'Connected to `{db_path.name}`\n\n'
+        )
 
     def navigate_to_screen(self, screen_id: str, screen_class):
         """Navigate to a screen, creating it if it doesn't exist."""
@@ -296,7 +320,6 @@ class CluecoinsApp(App):
             id='main_screen',
             set_current=True,
         )
-        LOG.write('Welcome to Cluecoins!')
 
 
 def run() -> None:
