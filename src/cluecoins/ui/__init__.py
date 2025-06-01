@@ -20,6 +20,16 @@ LOG = RichLog()
 LOG.styles.height = 10
 
 
+class BaseScreen(Static):
+    """Base screen class with common navigation functionality."""
+
+    app: 'CluecoinsApp'
+
+    def navigate_back_to_main(self):
+        """Navigate back to the main screen."""
+        self.parent.watch_current(self.id, 'main_screen')
+
+
 class MenuButton(Button):
     def __init__(self, *a, **kw):
         super().__init__(*a, **kw)
@@ -28,16 +38,16 @@ class MenuButton(Button):
 
 class MenuBar(Container):
     """A menu bar component for the top menu buttons only."""
-    
+
     def __init__(self):
         super().__init__(id='menu_bar')
-    
+
     def compose(self) -> ComposeResult:
         yield MenuButton('File', id='file_menu_button')
         yield MenuButton('Edit', id='edit_menu_button')
         yield MenuButton('View', id='view_menu_button')
         yield MenuButton('Help', id='help_menu_button')
-    
+
     @on(Button.Pressed, '#file_menu_button')
     def show_file_menu(self, event):
         app = self.app
@@ -59,14 +69,12 @@ class MenuBar(Container):
         app.show_menu('help_menu', 66)
 
 
-class MainScreen(Static):
+class MainScreen(BaseScreen):
     def compose(self) -> ComposeResult:
         yield Static('')
 
 
-class FetchQuotesScreen(Static):
-    app: 'CluecoinsApp'
-
+class FetchQuotesScreen(BaseScreen):
     def __init__(self):
         super().__init__()
         self._log = RichLog()
@@ -96,12 +104,10 @@ class FetchQuotesScreen(Static):
 
     @on(Button.Pressed, '#back')
     async def on_back_pressed(self, event):
-        self.parent.watch_current('fetch_quotes_screen', 'main_screen')
+        self.navigate_back_to_main()
 
 
-class QuotesScreen(Static):
-    app: 'CluecoinsApp'
-
+class QuotesScreen(BaseScreen):
     def __init__(self):
         super().__init__()
         self._log = RichLog()
@@ -122,9 +128,7 @@ class QuotesScreen(Static):
         yield self._log
 
 
-class OpenFileScreen(Static):
-    app: 'CluecoinsApp'
-
+class OpenFileScreen(BaseScreen):
     def __init__(self):
         super().__init__()
         self._tree = None
@@ -148,7 +152,7 @@ class OpenFileScreen(Static):
 
     @on(Button.Pressed, '#open-file-cancel')
     async def on_cancel_pressed(self, event):
-        self.parent.watch_current('open_file_screen', 'main_screen')
+        self.navigate_back_to_main()
 
     @on(Button.Pressed, '#open-file-open')
     async def on_open_pressed(self, event):
@@ -159,7 +163,7 @@ class OpenFileScreen(Static):
             return
 
         self.app.set_db_path(self._selected)
-        self.parent.watch_current('open_file_screen', 'main_screen')
+        self.navigate_back_to_main()
 
 
 class CluecoinsApp(App):
@@ -184,6 +188,18 @@ class CluecoinsApp(App):
         self._db_path = db_path
         LOG.write(f'connected to `{db_path}`')
         self._status_bar.update(f'connected to {db_path.name}')
+
+    def navigate_to_screen(self, screen_id: str, screen_class):
+        """Navigate to a screen, creating it if it doesn't exist."""
+        self.hide_all_menus()
+        try:
+            self._content.watch_current(self._content.visible_content.id, screen_id)
+        except Exception:
+            self._content.add_content(
+                screen_class(),
+                id=screen_id,
+                set_current=True,
+            )
 
     def compose(self):
         yield self._menu_bar
@@ -218,18 +234,18 @@ class CluecoinsApp(App):
         )
         yield LOG
         yield self._status_bar
-    
+
     def hide_all_menus(self):
         """Hide all dropdown menus."""
         for menu_id in ['file_menu', 'edit_menu', 'view_menu', 'help_menu']:
             self.query_one(f'#{menu_id}').add_class('hidden')
-    
+
     def show_menu(self, menu_id: str, x_offset: int):
         """Show a specific menu at the given x offset."""
         menu = self.query_one(f'#{menu_id}')
         is_hidden = menu.has_class('hidden')
         self.hide_all_menus()
-        
+
         if is_hidden:
             menu.remove_class('hidden')
             menu.styles.offset = (x_offset, 1)
@@ -240,39 +256,15 @@ class CluecoinsApp(App):
 
     @on(Button.Pressed, '#open_file_button')
     async def on_open_file_pressed(self, event):
-        self.hide_all_menus()
-        try:
-            self._content.watch_current(self._content.visible_content.id, 'open_file_screen')
-        except Exception:
-            self._content.add_content(
-                OpenFileScreen(),
-                id='open_file_screen',
-                set_current=True,
-            )
+        self.navigate_to_screen('open_file_screen', OpenFileScreen)
 
     @on(Button.Pressed, '#cached_quotes_button')
     async def on_cached_quotes_pressed(self, event):
-        self.hide_all_menus()
-        try:
-            self._content.watch_current(self._content.visible_content.id, 'quotes_screen')
-        except Exception:
-            self._content.add_content(
-                QuotesScreen(),
-                id='quotes_screen',
-                set_current=True,
-            )
+        self.navigate_to_screen('quotes_screen', QuotesScreen)
 
     @on(Button.Pressed, '#fetch_quotes_button')
     async def on_fetch_quotes_pressed(self, event):
-        self.hide_all_menus()
-        try:
-            self._content.watch_current(self._content.visible_content.id, 'fetch_quotes_screen')
-        except Exception:
-            self._content.add_content(
-                FetchQuotesScreen(),
-                id='fetch_quotes_screen',
-                set_current=True,
-            )
+        self.navigate_to_screen('fetch_quotes_screen', FetchQuotesScreen)
 
     def on_mount(self) -> None:
         self._content.add_content(
