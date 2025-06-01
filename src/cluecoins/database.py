@@ -116,7 +116,6 @@ async def create_new_account(conn: Connection, account_name: str, account_curren
 
 
 async def create_archived_account(conn: Connection, account_info: tuple[Any, ...]) -> None:
-
     (
         account_name,
         account_type_id,

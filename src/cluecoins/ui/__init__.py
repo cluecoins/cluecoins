@@ -74,7 +74,6 @@ class QuotesScreen(Static):
         self._log = RichLog()
 
     async def on_mount(self):
-
         storage = Storage(Path(xdg.xdg_data_home()) / 'cluecoins' / 'cluecoins.db')
         quotes = defaultdict(int)
         async with storage.db:
@@ -288,7 +287,6 @@ class CluecoinsApp(App):
 
 
 def run() -> None:
-
     # sync = SyncManager()
 
     # def get_db() -> str:

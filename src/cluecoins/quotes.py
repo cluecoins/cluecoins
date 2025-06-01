@@ -1,9 +1,10 @@
 from datetime import datetime
 from datetime import timedelta
 from decimal import Decimal
+from os import environ as env
 
 import aiohttp
-from os import environ as env
+
 from cluecoins.storage import Storage
 
 CB_API_URL = 'https://api.currencybeacon.com'

@@ -162,7 +162,6 @@ class BluecoinsStorage:
         queries = schema.split(';')
 
         for query in queries:
-
             regex = 'CREATE TABLE (\w*)'
 
             re_query = re.search(regex, query)

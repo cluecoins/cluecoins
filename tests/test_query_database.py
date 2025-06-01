@@ -23,7 +23,6 @@ from cluecoins.database import update_transaction
 
 
 async def test_set_base_currency(conn: Connection) -> None:
-
     await set_base_currency(conn, 'UYU')
 
     base_currency = conn.execute('SELECT defaultSettings FROM SETTINGSTABLE WHERE settingsTableID = ?', (1,))
@@ -33,14 +32,12 @@ async def test_set_base_currency(conn: Connection) -> None:
 
 
 async def test_get_base_currency(conn: Connection) -> None:
-
     expected_base_currency = await get_base_currency(conn)
 
     assert expected_base_currency == 'USD'
 
 
 async def test_iter_transactions(conn: Connection) -> None:
-
     expected_transaction_data = next(iter_transactions(conn))
 
     assert expected_transaction_data == (
@@ -53,14 +50,12 @@ async def test_iter_transactions(conn: Connection) -> None:
 
 
 async def test_iter_accounts(conn: Connection) -> None:
-
     expected_account_data = next(iter_accounts(conn, 'USD', 'USDT'))
 
     assert expected_account_data == (-1, 'USDT', Decimal('1.0'))
 
 
 async def test_get_account_list(conn: Connection) -> None:
-
     account_list = await get_accounts_list(conn)
     expected_len_account_list = len(account_list)
 
@@ -68,7 +63,6 @@ async def test_get_account_list(conn: Connection) -> None:
 
 
 async def test_update_account(conn: Connection) -> None:
-
     update_account(conn, 1, Decimal('0.123'))
     account_conversion_rate_new = conn.execute(
         'SELECT accountConversionRateNew FROM ACCOUNTSTABLE WHERE accountsTableID = ?',
@@ -89,7 +83,6 @@ async def test_find_account(conn: Connection) -> None:
 
 
 async def test_create_new_account(conn: Connection) -> None:
-
     await create_new_account(conn, 'FTX', 'USD')
 
     account = conn.execute(
@@ -116,7 +109,6 @@ async def test_delete_account(conn: Connection) -> None:
 
 
 async def test_add_label_to_transactions(conn: Connection) -> None:
-
     add_label_to_transaction(conn, 'clue_test', 5000)
 
     label = conn.execute(
@@ -129,7 +121,6 @@ async def test_add_label_to_transactions(conn: Connection) -> None:
 
 
 async def test_find_account_transactions_id(conn: Connection) -> None:
-
     transactions_id_list = find_account_transactions_id(conn, 1).fetchall()
     expected_transactions_id_account_list = len(transactions_id_list)
 
@@ -137,7 +128,6 @@ async def test_find_account_transactions_id(conn: Connection) -> None:
 
 
 async def test_update_transaction(conn: Connection) -> None:
-
     update_transaction(conn, 5005, Decimal(10), Decimal(1))
 
     update_data_tuple = conn.execute(
@@ -150,7 +140,6 @@ async def test_update_transaction(conn: Connection) -> None:
 
 
 async def test_move_transactions_to_account(conn: Connection) -> None:
-
     await move_transactions_to_account(conn, 4, 5)
 
     transactions_list = conn.execute(
@@ -163,7 +152,6 @@ async def test_move_transactions_to_account(conn: Connection) -> None:
 
 
 async def test_delete_label(conn: Connection) -> None:
-
     await delete_label(conn, 'Family')
 
     label = (
@@ -179,14 +167,12 @@ async def test_delete_label(conn: Connection) -> None:
 
 
 async def test_find_labels_by_id(conn: Connection) -> None:
-
     list_labels = await find_labels_by_transaction_id(conn, 20061)
 
     assert list_labels == [('Vacation',), ('Birthday',)]
 
 
 async def test_copy_to_clue(conn: Connection, create_clue_tables: None) -> None:
-
     account_id = (
         conn.cursor()
         .execute(

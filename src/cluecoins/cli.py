@@ -40,7 +40,6 @@ def cli(path: str) -> None:
 
 
 async def convert(base_currency: str, db_path: str, log: Callable) -> None:
-
     conn = connect_local_db(db_path)
 
     storage = Storage(Path(xdg.xdg_data_home()) / 'cluecoins' / 'cluecoins.db')
@@ -93,7 +92,6 @@ async def archive(
     bluecoins_storage = BluecoinsStorage(conn)
 
     async with conn:
-
         account_id = await bluecoins_storage.get_account_id(account_name)
         if account_id is None:
             raise Exception(f'Account {account_name} does not exist')
@@ -116,13 +114,11 @@ async def unarchive(
     account_name: str,
     db_path: str,
 ) -> None:
-
     conn = connect_local_db(db_path)
 
     bluecoins_storage = BluecoinsStorage(conn)
 
     async with conn:
-
         # create account
         account_info = await bluecoins_storage.decode_account_info(account_name)
         await create_archived_account(conn, account_info)
@@ -156,7 +152,6 @@ async def create_account(
     bluecoins_storage = BluecoinsStorage(conn)
 
     async with conn:
-
         account_currency = await get_base_currency(conn)
         await bluecoins_storage.create_account(account_name, account_currency)
 
@@ -171,7 +166,6 @@ async def add_label(
     bluecoins_storage = BluecoinsStorage(conn)
 
     async with conn:
-
         account_id = await bluecoins_storage.get_account_id(account_name)
         if account_id is None:
             return print('account is not exist')
@@ -190,7 +184,6 @@ async def _unarchive_v2(
     bluecoins_storage = BluecoinsStorage(conn)
 
     async with conn:
-
         account_id = await bluecoins_storage.get_account_id(account, True)
         if account_id is None:
             raise Exception(f'Account {account} does not exist')

@@ -11,7 +11,6 @@ from cluecoins.storage import Storage
 
 
 async def test_create_database(initialization_storage: Storage) -> None:
-
     try:
         conn = initialization_storage.db
 
@@ -62,7 +61,6 @@ async def test_get_quote(initialization_storage: Storage) -> None:
 
 
 async def test_create_account(conn: Connection) -> None:
-
     storage = BluecoinsStorage(conn)
     storage.create_account('Archive', 'USD')
 
@@ -76,7 +74,6 @@ async def test_create_account(conn: Connection) -> None:
 
 
 async def test_get_account_id(conn: Connection) -> None:
-
     storage = BluecoinsStorage(conn)
     expected_id = storage.get_account_id('Checking')
 
@@ -84,7 +81,6 @@ async def test_get_account_id(conn: Connection) -> None:
 
 
 async def test_add_label(conn: Connection) -> None:
-
     storage = BluecoinsStorage(conn)
     storage.add_label(3, 'clue_test')
 
