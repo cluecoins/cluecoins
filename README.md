@@ -24,6 +24,12 @@ Run `cluecoins` command in the terminal. Open ".fydb" file with the database. Us
 
 Consider registering on the site to get your own API key and set `CB_API_KEY` environment variable. If not set, built-in key will be used, but it has limits; use it only for testing purposes.
 
+## Planned features
+
+- [ ] View database statistics: number of accounts, transactions, categories, etc.
+- [ ] View and edit transaction labels.
+- [ ] Push/pull database using ADB shell.
+
 ## Database backup/restore
 
 1. Open the Bluecoins app. Go to *Settings -> Data Management -> Phone Storage -> Backup to phone storage*.

@@ -46,6 +46,7 @@ class MenuBar(Container):
         yield MenuButton('File', id='file_menu_button')
         yield MenuButton('Edit', id='edit_menu_button')
         yield MenuButton('View', id='view_menu_button')
+        yield MenuButton('Tools', id='tools_menu_button')
         yield MenuButton('Help', id='help_menu_button')
 
     @on(Button.Pressed, '#file_menu_button')
@@ -63,10 +64,15 @@ class MenuBar(Container):
         app = self.app
         app.show_menu('view_menu', 44)
 
+    @on(Button.Pressed, '#tools_menu_button')
+    def show_tools_menu(self, event):
+        app = self.app
+        app.show_menu('tools_menu', 66)
+
     @on(Button.Pressed, '#help_menu_button')
     def show_help_menu(self, event):
         app = self.app
-        app.show_menu('help_menu', 66)
+        app.show_menu('help_menu', 88)
 
 
 class MainScreen(BaseScreen):
@@ -212,15 +218,20 @@ class CluecoinsApp(App):
             classes='menu_column hidden',
         )
         yield Container(
-            MenuButton('Fetch Quotes', id='fetch_quotes_button'),
-            MenuButton('Change Currency', id='change_currency_button', disabled=True),
+            MenuButton('Accounts', disabled=True),
+            MenuButton('Labels', disabled=True),
             id='edit_menu',
             classes='menu_column hidden',
         )
         yield Container(
-            MenuButton('Accounts', disabled=True),
             MenuButton('Cached Quotes', id='cached_quotes_button'),
             id='view_menu',
+            classes='menu_column hidden',
+        )
+        yield Container(
+            MenuButton('Fetch Quotes', id='fetch_quotes_button'),
+            MenuButton('Change Currency', id='change_currency_button', disabled=True),
+            id='tools_menu',
             classes='menu_column hidden',
         )
         yield Container(
@@ -237,8 +248,7 @@ class CluecoinsApp(App):
 
     def hide_all_menus(self):
         """Hide all dropdown menus."""
-        for menu_id in ['file_menu', 'edit_menu', 'view_menu', 'help_menu']:
-            self.query_one(f'#{menu_id}').add_class('hidden')
+        self.query('.menu_column').add_class('hidden')
 
     def show_menu(self, menu_id: str, x_offset: int):
         """Show a specific menu at the given x offset."""
