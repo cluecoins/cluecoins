@@ -56,6 +56,12 @@ class MenuBar(Container):
         yield MenuButton('View', id='view_menu_button')
         yield MenuButton('Tools', id='tools_menu_button')
         yield MenuButton('Help', id='help_menu_button')
+        yield MenuButton('🧐', id='main_menu_button')
+
+    @on(Button.Pressed, '#main_menu_button')
+    def show_main_menu(self, event):
+        self.app.hide_all_menus()
+        self.app.navigate_to_screen('main_screen', MainScreen)
 
     @on(Button.Pressed, '#file_menu_button')
     def show_file_menu(self, event):
@@ -311,11 +317,7 @@ class CluecoinsApp(App):
         self.navigate_to_screen('fetch_quotes_screen', FetchQuotesScreen)
 
     def on_mount(self) -> None:
-        self._content.add_content(
-            MainScreen(),
-            id='main_screen',
-            set_current=True,
-        )
+        self.navigate_to_screen('main_screen', MainScreen)
 
 
 def run() -> None:
