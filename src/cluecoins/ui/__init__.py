@@ -134,6 +134,14 @@ class QuotesScreen(BaseScreen):
         yield self._log
 
 
+class StatisticsScreen(BaseScreen):
+    async def on_mount(self):
+        ...
+
+    def compose(self) -> ComposeResult:
+        yield Static('')
+
+
 class OpenFileScreen(BaseScreen):
     def __init__(self):
         super().__init__()
@@ -224,6 +232,7 @@ class CluecoinsApp(App):
             classes='menu_column hidden',
         )
         yield Container(
+            MenuButton('Statistics', id='statistics_button'),
             MenuButton('Cached Quotes', id='cached_quotes_button'),
             id='view_menu',
             classes='menu_column hidden',
@@ -271,6 +280,11 @@ class CluecoinsApp(App):
     @on(Button.Pressed, '#cached_quotes_button')
     async def on_cached_quotes_pressed(self, event):
         self.navigate_to_screen('quotes_screen', QuotesScreen)
+
+    @on(Button.Pressed, '#statistics_button')
+    async def on_statistics_pressed(self, event):
+        self.navigate_to_screen('statistics_screen', StatisticsScreen)
+
 
     @on(Button.Pressed, '#fetch_quotes_button')
     async def on_fetch_quotes_pressed(self, event):
