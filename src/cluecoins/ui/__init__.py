@@ -26,6 +26,39 @@ class MenuButton(Button):
         self.add_class('menu_button')
 
 
+class MenuBar(Container):
+    """A menu bar component for the top menu buttons only."""
+    
+    def __init__(self):
+        super().__init__(id='menu_bar')
+    
+    def compose(self) -> ComposeResult:
+        yield MenuButton('File', id='file_menu_button')
+        yield MenuButton('Edit', id='edit_menu_button')
+        yield MenuButton('View', id='view_menu_button')
+        yield MenuButton('Help', id='help_menu_button')
+    
+    @on(Button.Pressed, '#file_menu_button')
+    def show_file_menu(self, event):
+        app = self.app
+        app.show_menu('file_menu', 0)
+
+    @on(Button.Pressed, '#edit_menu_button')
+    def show_edit_menu(self, event):
+        app = self.app
+        app.show_menu('edit_menu', 22)
+
+    @on(Button.Pressed, '#view_menu_button')
+    def show_view_menu(self, event):
+        app = self.app
+        app.show_menu('view_menu', 44)
+
+    @on(Button.Pressed, '#help_menu_button')
+    def show_help_menu(self, event):
+        app = self.app
+        app.show_menu('help_menu', 66)
+
+
 class MainScreen(Static):
     def compose(self) -> ComposeResult:
         yield Static('')
@@ -145,6 +178,7 @@ class CluecoinsApp(App):
             id='status_bar',
         )
         self._db_path: Path | None = None
+        self._menu_bar = MenuBar()
 
     def set_db_path(self, db_path: Path) -> None:
         self._db_path = db_path
@@ -152,13 +186,7 @@ class CluecoinsApp(App):
         self._status_bar.update(f'connected to {db_path.name}')
 
     def compose(self):
-        yield Container(
-            MenuButton('File', id='file_menu_button'),
-            MenuButton('Edit', id='edit_menu_button'),
-            MenuButton('View', id='view_menu_button'),
-            MenuButton('Help', id='help_menu_button'),
-            id='menu_bar',
-        )
+        yield self._menu_bar
         yield Container(
             MenuButton('Open File', id='open_file_button'),
             MenuButton('Open Device', id='open_device_button', disabled=True),
@@ -190,48 +218,21 @@ class CluecoinsApp(App):
         )
         yield LOG
         yield self._status_bar
-
-    def hide_menu_bar(self):
-        self.query_one('#file_menu').add_class('hidden')
-        self.query_one('#edit_menu').add_class('hidden')
-        self.query_one('#view_menu').add_class('hidden')
-        self.query_one('#help_menu').add_class('hidden')
-
-    @on(Button.Pressed, '#file_menu_button')
-    def show_file_menu(self, event):
-        is_hidden = self.query_one('#file_menu').has_class('hidden')
-        self.hide_menu_bar()
-
+    
+    def hide_all_menus(self):
+        """Hide all dropdown menus."""
+        for menu_id in ['file_menu', 'edit_menu', 'view_menu', 'help_menu']:
+            self.query_one(f'#{menu_id}').add_class('hidden')
+    
+    def show_menu(self, menu_id: str, x_offset: int):
+        """Show a specific menu at the given x offset."""
+        menu = self.query_one(f'#{menu_id}')
+        is_hidden = menu.has_class('hidden')
+        self.hide_all_menus()
+        
         if is_hidden:
-            self.query_one('#file_menu').remove_class('hidden')
-            self.query_one('#file_menu').styles.offset = (0, 1)
-
-    @on(Button.Pressed, '#edit_menu_button')
-    def show_edit_menu(self, event):
-        is_hidden = self.query_one('#edit_menu').has_class('hidden')
-        self.hide_menu_bar()
-
-        if is_hidden:
-            self.query_one('#edit_menu').remove_class('hidden')
-            self.query_one('#edit_menu').styles.offset = (22, 1)
-
-    @on(Button.Pressed, '#view_menu_button')
-    def show_view_menu(self, event):
-        is_hidden = self.query_one('#view_menu').has_class('hidden')
-        self.hide_menu_bar()
-
-        if is_hidden:
-            self.query_one('#view_menu').remove_class('hidden')
-            self.query_one('#view_menu').styles.offset = (44, 1)
-
-    @on(Button.Pressed, '#help_menu_button')
-    def show_help_menu(self, event):
-        is_hidden = self.query_one('#help_menu').has_class('hidden')
-        self.hide_menu_bar()
-
-        if is_hidden:
-            self.query_one('#help_menu').remove_class('hidden')
-            self.query_one('#help_menu').styles.offset = (66, 1)
+            menu.remove_class('hidden')
+            menu.styles.offset = (x_offset, 1)
 
     @on(Button.Pressed, '#exit')
     async def on_exit_pressed(self, event):
@@ -239,7 +240,7 @@ class CluecoinsApp(App):
 
     @on(Button.Pressed, '#open_file_button')
     async def on_open_file_pressed(self, event):
-        self.hide_menu_bar()
+        self.hide_all_menus()
         try:
             self._content.watch_current(self._content.visible_content.id, 'open_file_screen')
         except Exception:
@@ -251,7 +252,7 @@ class CluecoinsApp(App):
 
     @on(Button.Pressed, '#cached_quotes_button')
     async def on_cached_quotes_pressed(self, event):
-        self.hide_menu_bar()
+        self.hide_all_menus()
         try:
             self._content.watch_current(self._content.visible_content.id, 'quotes_screen')
         except Exception:
@@ -263,7 +264,7 @@ class CluecoinsApp(App):
 
     @on(Button.Pressed, '#fetch_quotes_button')
     async def on_fetch_quotes_pressed(self, event):
-        self.hide_menu_bar()
+        self.hide_all_menus()
         try:
             self._content.watch_current(self._content.visible_content.id, 'fetch_quotes_screen')
         except Exception:
