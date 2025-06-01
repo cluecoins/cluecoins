@@ -27,6 +27,7 @@ Welcome to Cluecoins!
 To get started, select "Open File" from the File menu to open a database file.
 """
 
+
 class BaseScreen(Static):
     """Base screen class with common navigation functionality."""
 
@@ -146,8 +147,7 @@ class QuotesScreen(BaseScreen):
 
 
 class StatisticsScreen(BaseScreen):
-    async def on_mount(self):
-        ...
+    async def on_mount(self): ...
 
     def compose(self) -> ComposeResult:
         yield Static('')
@@ -222,10 +222,7 @@ class CluecoinsApp(App):
         LOG.write(f'connected to `{db_path}`')
         LOG.write(res.stdout.split(':')[1].strip())
         self._status_bar.update(f'connected to `{db_path.name}`')
-        self.app.query_one('#welcome_text').update(
-            f'Welcome to Cluecoins!\n\n'
-            f'Connected to `{db_path.name}`\n\n'
-        )
+        self.app.query_one('#welcome_text').update(f'Welcome to Cluecoins!\n\nConnected to `{db_path.name}`\n\n')  # type: ignore[attr-defined]
 
     def navigate_to_screen(self, screen_id: str, screen_class):
         """Navigate to a screen, creating it if it doesn't exist."""
@@ -308,7 +305,6 @@ class CluecoinsApp(App):
     @on(Button.Pressed, '#statistics_button')
     async def on_statistics_pressed(self, event):
         self.navigate_to_screen('statistics_screen', StatisticsScreen)
-
 
     @on(Button.Pressed, '#fetch_quotes_button')
     async def on_fetch_quotes_pressed(self, event):
