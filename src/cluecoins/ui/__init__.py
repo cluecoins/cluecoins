@@ -86,7 +86,7 @@ class FetchQuotesScreen(BaseScreen):
         self._log = RichLog()
 
     def compose(self) -> ComposeResult:
-        yield Static('fetch quotes')
+        yield Static('Fetch quotes for accounts and transactions from CurrencyBeacon API\n')
         yield self._log
         yield Container(
             Button('Back', id='back'),
@@ -130,7 +130,7 @@ class QuotesScreen(BaseScreen):
             self._log.write(f'{group} {count}')
 
     def compose(self) -> ComposeResult:
-        yield Static('quotes\n')
+        yield Static('Quotes fetched from CurrencyBeacon API\n')
         yield self._log
 
 
@@ -144,7 +144,7 @@ class OpenFileScreen(BaseScreen):
         if not self._tree:
             self._tree = DirectoryTree('./')
 
-        yield Static('open file')
+        yield Static('\nOpen database file (*.fydb):\n')
         yield self._tree
         yield Container(
             Button('Cancel', id='open-file-cancel'),
