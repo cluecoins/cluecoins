@@ -1,0 +1,63 @@
+[project]
+name = "cluecoins"
+version = "0.0.0"
+description = "A CLI tool to manage the database of Bluecoins, an awesome budget planner for Android"
+authors = [
+    {name = "Lev Gorodetskii", email = "github@drsr.io"},
+    {name = "Iuliia Kornilova", email = "github@larnaa.pw"},
+]
+maintainers = [
+    {name = "Lev Gorodetskii", email = "github@drsr.io"},
+]
+license = "MIT"
+readme = "README.md"
+requires-python = ">=3.10,<4"
+dependencies = [
+    "adbutils>=1.0.8",
+    "PyYAML>=6.0",
+    "xdg>=5.1.1",
+    "textual>=0.71.0",
+    "aiohttp>=3.9.5",
+    "aiosqlite>=0.20.0",
+]
+
+[dependency-groups]
+dev = [
+    "ruff",
+    "mypy",
+    "pytest",
+    "pytest-async",
+]
+
+[project.scripts]
+cluecoins = "cluecoins.ui:run"
+
+[tool.ruff]
+line-length = 120
+target-version = "py312"
+
+[tool.ruff.lint]
+ignore = [
+    "E402",   # module level import not at top of file
+    "E501",   # line too long
+]
+extend-select = ["B", "C4", "FA", "G", "I", "PTH", "Q", "RET", "RUF", "TCH", "UP"]
+flake8-quotes = { inline-quotes = "single", multiline-quotes = "double" }
+isort = { force-single-line = true, known-first-party = ["cluecoins"] }
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+log_cli_level = "WARNING"
+
+[tool.ruff.format]
+quote-style = "single"
+
+[tool.mypy]
+python_version = "3.12"
+plugins = ["pydantic.mypy"]
+strict = true
+
+[build-system]
+requires = ["uv_build"]
+build-backend = "uv_build"

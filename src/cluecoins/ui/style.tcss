@@ -1,0 +1,80 @@
+
+#menu_bar {
+    dock: top;
+    height: 1;
+    width: 100%;
+    layout: horizontal;
+    layer: above;
+
+}
+
+#status_bar {
+    dock: bottom;
+    height: 1;
+    width: 100%;
+    padding: 0 2;
+    layer: above;
+    background: black;
+}
+
+.menu_column {
+    dock: top;
+    offset: 1 1;
+    layout: vertical;
+    layer: above;
+    width: 22;
+    height: auto;
+
+    border-left: outer grey;
+}
+
+.menu_button {
+    height: 1;
+    width: 22;
+    margin: 0;
+    padding: 0 1;
+    border: none;
+    layer: above;
+    text-align: left;
+}
+
+.hidden {
+    display: none;
+}
+
+.window {
+    padding: 1;
+    margin: 1;
+    max-width: 120;
+    border: solid grey;
+    # layer: below;
+    align: center middle;
+}
+
+.horizontal {
+    layout: horizontal;
+}
+
+.above {
+    layer: above;
+}
+
+.button-group {
+    layout: horizontal;
+    width: 100%;
+    height: 5;
+    align: center middle;
+}
+
+.below {
+    layer: below;
+}
+
+Screen {
+    align: center middle;
+    layers: below above;
+}
+
+Button {
+    margin: 2;
+}
