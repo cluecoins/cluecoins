@@ -44,8 +44,6 @@
 
 .window {
     padding: 1;
-    margin: 1;
-    max-width: 120;
     border: solid grey;
     # layer: below;
     align: center middle;

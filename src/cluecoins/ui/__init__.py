@@ -17,7 +17,7 @@ from textual.widgets import Static
 from cluecoins.storage import Storage
 
 LOG = RichLog()
-LOG.styles.height = 20
+LOG.styles.height = 10
 
 
 class MenuButton(Button):
