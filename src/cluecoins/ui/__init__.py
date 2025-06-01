@@ -9,6 +9,7 @@ from textual import on
 from textual.app import App
 from textual.app import ComposeResult
 from textual.containers import Container
+from textual.widget import NoMatches
 from textual.widgets import Button
 from textual.widgets import ContentSwitcher
 from textual.widgets import DirectoryTree
@@ -33,9 +34,12 @@ class BaseScreen(Static):
 
     app: 'CluecoinsApp'
 
+    def __init__(self):
+        super().__init__(classes='screen')
+
     def navigate_back_to_main(self):
         """Navigate back to the main screen."""
-        self.parent.watch_current(self.id, 'main_screen')
+        self.app.navigate_to_screen('main_screen', MainScreen)
 
 
 class MenuButton(Button):
@@ -57,11 +61,6 @@ class MenuBar(Container):
         yield MenuButton('Tools', id='tools_menu_button')
         yield MenuButton('Help', id='help_menu_button')
         yield MenuButton('🏠', id='main_menu_button')
-
-    @on(Button.Pressed, '#main_menu_button')
-    def show_main_menu(self, event):
-        self.app.hide_all_menus()
-        self.app.navigate_to_screen('main_screen', MainScreen)
 
     @on(Button.Pressed, '#file_menu_button')
     def show_file_menu(self, event):
@@ -88,14 +87,14 @@ class MenuBar(Container):
         app = self.app
         app.show_menu('help_menu', 88)
 
+    @on(Button.Pressed, '#main_menu_button')
+    def show_main_menu(self, event):
+        self.app.navigate_to_screen('main_screen', MainScreen)
+
 
 class MainScreen(BaseScreen):
-    def __init__(self):
-        super().__init__()
-        self._text = Static(WELCOME_TEXT, id='welcome_text')
-
     def compose(self) -> ComposeResult:
-        yield self._text
+        yield Static(WELCOME_TEXT, id='welcome_text')
 
 
 class FetchQuotesScreen(BaseScreen):
@@ -153,7 +152,7 @@ class QuotesScreen(BaseScreen):
 
 
 class StatisticsScreen(BaseScreen):
-    async def on_mount(self): ...
+    # async def on_mount(self): ...
 
     def compose(self) -> ComposeResult:
         yield Static('')
@@ -233,9 +232,15 @@ class CluecoinsApp(App):
     def navigate_to_screen(self, screen_id: str, screen_class):
         """Navigate to a screen, creating it if it doesn't exist."""
         self.hide_all_menus()
+
+        self.app.query('.screen').set(display=False)
+
+        if self._content.current:
+            self._content.watch_current(self._content.visible_content.id, None)
+
         try:
-            self._content.watch_current(self._content.visible_content.id, screen_id)
-        except Exception:
+            self._content.watch_current(None, screen_id)
+        except NoMatches:
             self._content.add_content(
                 screen_class(),
                 id=screen_id,
