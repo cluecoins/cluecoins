@@ -76,3 +76,8 @@ Screen {
 Button {
     margin: 2;
 }
+
+#main_menu_button {
+    dock: right;
+    width: 1;
+}

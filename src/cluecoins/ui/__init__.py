@@ -56,7 +56,7 @@ class MenuBar(Container):
         yield MenuButton('View', id='view_menu_button')
         yield MenuButton('Tools', id='tools_menu_button')
         yield MenuButton('Help', id='help_menu_button')
-        yield MenuButton('🧐', id='main_menu_button')
+        yield MenuButton('🏠', id='main_menu_button')
 
     @on(Button.Pressed, '#main_menu_button')
     def show_main_menu(self, event):
