@@ -2,6 +2,7 @@ import subprocess
 import sys
 from collections import defaultdict
 from pathlib import Path
+from typing import TYPE_CHECKING
 from typing import ClassVar
 
 import xdg
@@ -17,6 +18,9 @@ from textual.widgets import RichLog
 from textual.widgets import Static
 
 from cluecoins.storage import Storage
+
+if TYPE_CHECKING:
+    from aiosqlite import Connection
 
 LOG = RichLog()
 LOG.styles.height = 10
@@ -60,7 +64,7 @@ class MenuBar(Container):
         yield MenuButton('View', id='view_menu_button')
         yield MenuButton('Tools', id='tools_menu_button')
         yield MenuButton('Help', id='help_menu_button')
-        yield MenuButton('🏠', id='main_menu_button')
+        yield MenuButton('[🏠]', id='main_menu_button')
 
     @on(Button.Pressed, '#file_menu_button')
     def show_file_menu(self, event):
@@ -152,7 +156,7 @@ class QuotesScreen(BaseScreen):
 
 
 class StatisticsScreen(BaseScreen):
-    # async def on_mount(self): ...
+    async def on_mount(self): ...
 
     def compose(self) -> ComposeResult:
         yield Static('')
@@ -192,7 +196,7 @@ class OpenFileScreen(BaseScreen):
             LOG.write('Please select a fydb file')
             return
 
-        self.app.set_db_path(self._selected)
+        self.app.database_connect(self._selected)
         self.navigate_back_to_main()
 
 
@@ -212,10 +216,10 @@ class CluecoinsApp(App):
             id='status_bar',
         )
         self._db_path: Path | None = None
-        self._db_hint: str = ''
+        self._db_conn: Connection | None = None
         self._menu_bar = MenuBar()
 
-    def set_db_path(self, db_path: Path) -> None:
+    def database_connect(self, db_path: Path) -> None:
         self._db_path = db_path
 
         res = subprocess.run(
@@ -227,7 +231,9 @@ class CluecoinsApp(App):
         LOG.write(f'connected to `{db_path}`')
         LOG.write(res.stdout.split(':')[1].strip())
         self._status_bar.update(f'connected to `{db_path.name}`')
-        self.app.query_one('#welcome_text').update(f'Welcome to Cluecoins!\n\nConnected to `{db_path.name}`\n\n')  # type: ignore[attr-defined]
+        self.app.query_one('#welcome_text').update(  # type: ignore[attr-defined]
+            f'Connected to `{db_path.name}.\n\nSelect command from the menu bar.'
+        )
 
     def navigate_to_screen(self, screen_id: str, screen_class):
         """Navigate to a screen, creating it if it doesn't exist."""
