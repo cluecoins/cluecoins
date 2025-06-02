@@ -54,7 +54,7 @@ async def convert(base_currency: str, db_path: str, log: Callable) -> None:
         async for date, id_, rate, currency, amount in iter_transactions(conn):
             true_rate = await cache.get_rate(date, base_currency, currency)
 
-            if true_rate in (None, rate):
+            if true_rate is None or true_rate == rate:
                 continue
 
             amount_original = amount * rate
@@ -69,7 +69,7 @@ async def convert(base_currency: str, db_path: str, log: Callable) -> None:
         async for id_, currency, rate in iter_accounts(conn):
             true_rate = await cache.get_rate(today, base_currency, currency)
 
-            if true_rate in (None, rate):
+            if true_rate is None or true_rate == rate:
                 continue
 
             await update_account(conn, id_, true_rate)

@@ -3,8 +3,8 @@
 # import datetime
 # import subprocess
 
-# from adbutils import adb  # type: ignore
-# from adbutils._device import AdbDevice  # type: ignore
+# from adbutils import adb
+# from adbutils._device import AdbDevice
 
 # APP_ID = 'com.rammigsoftware.bluecoins'
 
