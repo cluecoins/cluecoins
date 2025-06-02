@@ -44,9 +44,10 @@
 
 .window {
     padding: 1;
+    margin: 1;
     border: solid grey;
     # layer: below;
-    align: center middle;
+    align: left top;
 }
 
 .horizontal {
