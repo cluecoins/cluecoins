@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import date
 from decimal import Decimal
 from pathlib import Path
 
@@ -27,17 +27,16 @@ class Storage:
 
     async def create_quote_table(self) -> None:
         await self.db.execute(
-            'CREATE TABLE IF NOT EXISTS quotes (date TEXT, base_currency TEXT, quote_currency TEXT, price REAL)'
+            'CREATE TABLE IF NOT EXISTS quotes (date date, base_currency text, quote_currency text, rate text, PRIMARY KEY (date, base_currency, quote_currency))'
         )
 
     async def commit(self) -> None:
         await self.db.commit()
 
-    async def get_quote(self, date: datetime, base_currency: str, quote_currency: str) -> Decimal | None:
-        date = datetime.strptime(datetime.strftime(date, '%Y-%m-%d'), '%Y-%m-%d')
+    async def get_quote(self, date: date, base_currency: str, quote_currency: str) -> Decimal | None:
         res = await (
             await self.db.execute(
-                'SELECT price FROM quotes WHERE date = ? AND base_currency = ? AND quote_currency = ?',
+                'SELECT rate FROM quotes WHERE date = ? AND base_currency = ? AND quote_currency = ?',
                 (date, base_currency, quote_currency),
             )
         ).fetchone()
@@ -45,13 +44,10 @@ class Storage:
             return Decimal(str(res[0]))
         return None
 
-    async def add_quote(self, date: datetime, base_currency: str, quote_currency: str, price: Decimal) -> None:
-        # date = datetime.strptime(datetime.strftime(date, '%Y-%m-%d'), '%Y-%m-%d')
-        # if not await self.get_quote(date, base_currency, quote_currency):
-
+    async def add_quote(self, date: date, base_currency: str, quote_currency: str, rate: Decimal) -> None:
         await self.db.execute(
-            'INSERT INTO quotes (date, base_currency, quote_currency, price) VALUES (?, ?, ?, ?)',
-            (date, base_currency, quote_currency, str(price)),
+            'INSERT INTO quotes (date, base_currency, quote_currency, rate) VALUES (?, ?, ?, ?)',
+            (date, base_currency, quote_currency, str(rate)),
         )
 
 

@@ -36,12 +36,12 @@
 #     cache = CurrencyBeaconQuoteProvider(initialization_storage)
 #     conn = initialization_storage.db
 
-#     expected_quote_price = cache.get_rate(**currency_info)
+#     expected_quote_rate = cache.get_rate(**currency_info)
 
-#     price = await conn.execute(
+#     rate = await conn.execute(
 #         'SELECT * FROM quotes WHERE date = "2022-07-15 00:00:00"',
 #     )
 
-#     quote_price = (await price.fetchall())[0][3]
+#     quote_rate = (await rate.fetchall())[0][3]
 
-#     assert expected_quote_price == Decimal(f'{quote_price}')
+#     assert expected_quote_rate == Decimal(f'{quote_rate}')

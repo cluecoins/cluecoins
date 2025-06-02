@@ -30,12 +30,11 @@ async def iter_transactions(
     async with conn.execute(
         'SELECT date, transactionsTableID, conversionRateNew, transactionCurrency, amount FROM TRANSACTIONSTABLE WHERE transactionTypeID IN (3, 4) ORDER BY date DESC'
     ) as cursor:
-        async for date, id_, rate, currency, amount in cursor:
-            date = datetime.fromisoformat(date)
+        async for date_, id_, rate, currency, amount in cursor:
+            date_ = datetime.fromisoformat(date_)
             rate = Decimal(str(rate))
-            currency = currency.replace('USDT', 'USD')
             amount = Decimal(str(amount)) / 1000000
-            yield date, id_, rate, currency, amount
+            yield date_, id_, rate, currency, amount
 
 
 async def update_transaction(conn: Connection, id_: int, rate: Decimal, amount: Decimal) -> None:

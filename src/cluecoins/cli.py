@@ -1,7 +1,5 @@
 import logging
 from collections.abc import Callable
-from datetime import datetime
-from datetime import timedelta
 from decimal import Decimal
 from pathlib import Path
 
@@ -67,7 +65,7 @@ async def convert(base_currency: str, db_path: str, log: Callable) -> None:
                 f'transaction `{id_}` updated: {q(amount_original)} {currency} -> {q(amount_quote)} {base_currency} ({q(rate)} -> {q(true_rate)})'
             )
 
-        today = datetime.now() - timedelta(days=1)
+        today = date.today()
         async for id_, currency, rate in iter_accounts(conn):
             true_rate = await cache.get_rate(today, base_currency, currency)
 
@@ -75,12 +73,12 @@ async def convert(base_currency: str, db_path: str, log: Callable) -> None:
                 continue
 
             await update_account(conn, id_, true_rate)
-            log(
-                f'account `{id_}` updated: {base_currency}{currency} ({{q(rate)}} -> {q(true_rate)})'
-            )
+            log(f'account `{id_}` updated: {base_currency}{currency} ({q(rate)} -> {q(true_rate)})')
 
         await storage.commit()
         await conn.commit()
+
+        log('Done!')
 
 
 # async def archive(

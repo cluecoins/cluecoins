@@ -26,7 +26,7 @@
 #         'date': datetime(2022, 7, 15),
 #         'base_currency': 'USDT',
 #         'quote_currency': 'USD',
-#         'price': Decimal('1230.23'),
+#         'rate': Decimal('1230.23'),
 #     }
 
 #     conn = initialization_storage.db
@@ -46,18 +46,18 @@
 #         'date': datetime(2022, 7, 15),
 #         'base_currency': 'USDT',
 #         'quote_currency': 'USD',
-#         'price': Decimal('1230.23'),
+#         'rate': Decimal('1230.23'),
 #     }
 
 #     await initialization_storage.add_quote(**quote_test_data)
 
-#     expected_quote_price = await initialization_storage.get_quote(
+#     expected_quote_rate = await initialization_storage.get_quote(
 #         date=quote_test_data['date'],
 #         base_currency=quote_test_data['base_currency'],
 #         quote_currency=quote_test_data['quote_currency'],
 #     )
 
-#     assert expected_quote_price == Decimal('1230.23')
+#     assert expected_quote_rate == Decimal('1230.23')
 
 
 # async def test_create_account(conn: Connection) -> None:

@@ -1,9 +1,11 @@
+from datetime import date
 from datetime import datetime
 from datetime import timedelta
 from decimal import Decimal
 from os import environ as env
 
 import aiohttp
+from aiosqlite import IntegrityError
 
 from cluecoins.storage import Storage
 from cluecoins.ui import LOG
@@ -20,7 +22,7 @@ class CurrencyBeaconQuoteProvider:
 
     async def _fetch_quotes(
         self,
-        date: datetime,
+        date_: date,
         base_currency: str,
     ) -> None:
         """Getting quotes from the Exchangerate API and writing them to the local database"""
@@ -29,16 +31,16 @@ class CurrencyBeaconQuoteProvider:
         _key = CB_API_KEY
 
         # FIXME: Overkill
-        start_date = date - timedelta(days=180)
+        start_date = date_ - timedelta(days=180)
         params = {
             'api_key': _key,
             'start_date': start_date.strftime('%Y-%m-%d'),
-            'end_date': date.strftime('%Y-%m-%d'),
+            'end_date': date_.strftime('%Y-%m-%d'),
             'base': base_currency,
             'symbols': ','.join(self._quote_currencies),
         }
         async with aiohttp.ClientSession() as session:
-            LOG.write(f'Fetching quotes for {base_currency} {date}...')
+            LOG.write(f'Fetching quotes for {base_currency} {date_}...')
             LOG.write(f'Request count: {self._request_count}')
             self._request_count += 1
 
@@ -53,29 +55,32 @@ class CurrencyBeaconQuoteProvider:
                 if rate is None:
                     LOG.write(f'No rate for {quote_date} {base_currency} {quote_currency}')
                     continue
-                await self._storage.add_quote(
-                    datetime.strptime(quote_date, '%Y-%m-%d'),
-                    base_currency,
-                    quote_currency,
-                    Decimal(str(rate)),
-                )
+                try:
+                    await self._storage.add_quote(
+                        datetime.strptime(quote_date, '%Y-%m-%d').date(),
+                        base_currency,
+                        quote_currency,
+                        Decimal(str(rate)),
+                    )
+                except IntegrityError:
+                    pass
 
     async def get_rate(
         self,
-        date: datetime,
+        date_: date,
         base_currency: str,
         quote_currency: str,
     ) -> Decimal | None:
         if base_currency == quote_currency:
             return Decimal('1')
 
-        rate = await self._storage.get_quote(date, base_currency, quote_currency)
+        rate = await self._storage.get_quote(date_, base_currency, quote_currency)
         if not rate:
             self._quote_currencies.add(quote_currency)
-            await self._fetch_quotes(date, base_currency)
-            rate = await self._storage.get_quote(date, base_currency, quote_currency)
+            await self._fetch_quotes(date_, base_currency)
+            rate = await self._storage.get_quote(date_, base_currency, quote_currency)
 
         if not rate:
-            LOG.write(f'No quote for {date} {base_currency} {quote_currency}. Unknown quote currency?')
+            LOG.write(f'No quote for {date_} {base_currency} {quote_currency}. Unknown quote currency?')
 
         return rate
