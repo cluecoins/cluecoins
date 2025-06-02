@@ -56,7 +56,7 @@ async def convert(base_currency: str, db_path: str, log: Callable) -> None:
         async for date, id_, rate, currency, amount in iter_transactions(conn):
             true_rate = await cache.get_rate(date, base_currency, currency)
 
-            if true_rate == rate:
+            if true_rate in (None, rate):
                 continue
 
             amount_original = amount * rate
@@ -64,18 +64,20 @@ async def convert(base_currency: str, db_path: str, log: Callable) -> None:
 
             await update_transaction(conn, id_, true_rate, amount_quote)
             log(
-                f'==> transaction {id_}: {q(amount_original)} {currency} -> {q(amount_quote)} {base_currency} ({q(true_rate)} {base_currency}{currency})'
+                f'transaction `{id_}` updated: {q(amount_original)} {currency} -> {q(amount_quote)} {base_currency} ({q(rate)} -> {q(true_rate)})'
             )
 
         today = datetime.now() - timedelta(days=1)
         async for id_, currency, rate in iter_accounts(conn):
             true_rate = await cache.get_rate(today, base_currency, currency)
 
-            if true_rate == rate:
+            if true_rate in (None, rate):
                 continue
 
             await update_account(conn, id_, true_rate)
-            log(f'==> account {id_}: {q(rate)} {currency} -> {q(true_rate)} {base_currency}{currency}')
+            log(
+                f'account `{id_}` updated: {base_currency}{currency} ({{q(rate)}} -> {q(true_rate)})'
+            )
 
         await storage.commit()
         await conn.commit()

@@ -48,9 +48,7 @@ class Storage:
     async def add_quote(self, date: datetime, base_currency: str, quote_currency: str, price: Decimal) -> None:
         # date = datetime.strptime(datetime.strftime(date, '%Y-%m-%d'), '%Y-%m-%d')
         # if not await self.get_quote(date, base_currency, quote_currency):
-        from cluecoins.ui import LOG
 
-        LOG.write(f'Adding quote {date} {base_currency} {quote_currency} {price}')
         await self.db.execute(
             'INSERT INTO quotes (date, base_currency, quote_currency, price) VALUES (?, ?, ?, ?)',
             (date, base_currency, quote_currency, str(price)),

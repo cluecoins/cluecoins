@@ -13,6 +13,7 @@ from textual.containers import Container
 from textual.widget import NoMatches
 from textual.widgets import Button
 from textual.widgets import ContentSwitcher
+from textual.widgets import DataTable
 from textual.widgets import DirectoryTree
 from textual.widgets import RichLog
 from textual.widgets import Static
@@ -64,7 +65,7 @@ class MenuBar(Container):
         yield MenuButton('View', id='view_menu_button')
         yield MenuButton('Tools', id='tools_menu_button')
         yield MenuButton('Help', id='help_menu_button')
-        yield MenuButton('[🏠]', id='main_menu_button')
+        yield MenuButton('\[🏠]', id='main_menu_button')
 
     @on(Button.Pressed, '#file_menu_button')
     def show_file_menu(self, event):
@@ -137,22 +138,32 @@ class FetchQuotesScreen(BaseScreen):
 class QuotesScreen(BaseScreen):
     def __init__(self):
         super().__init__()
-        self._log = RichLog()
+        self._data = DataTable()
 
     async def on_mount(self):
         storage = Storage(Path(xdg.xdg_data_home()) / 'cluecoins' / 'cluecoins.db')
+
         quotes = defaultdict(int)
         async with storage.db:
+            await storage.create_quote_table()
+
+            # TODO: sql
             async for date, base_currency, quote_currency in await storage.db.execute(
                 'SELECT date, base_currency, quote_currency FROM quotes ORDER BY base_currency, quote_currency, date'
             ):
-                quotes[base_currency + quote_currency + ' ' + date[:4]] += 1
+                quotes[f'{base_currency}{quote_currency} {date[:4]}'] += 1
+
+        self._data.add_column('year')
+        self._data.add_column('ticker')
+        self._data.add_column('count')
+
         for group, count in quotes.items():
-            self._log.write(f'{group} {count}')
+            year, ticker = group.split(' ')
+            self._data.add_row(year, ticker, count)
 
     def compose(self) -> ComposeResult:
         yield Static('Quotes fetched from CurrencyBeacon API\n')
-        yield self._log
+        yield self._data
 
 
 class StatisticsScreen(BaseScreen):
