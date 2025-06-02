@@ -37,17 +37,19 @@ Updates currency exchange rates using historical data from [CurrencyBeacon API](
 
 Consider registering on the site to get your own API key and set `CB_API_KEY` environment variable. If not set, built-in key will be used, but it has limits; use it only for testing purposes.
 
-## Planned features
+## Roadmap
 
-- [ ] View database statistics.
-  - [ ] Number of accounts, transactions, categories, etc.
+- [ ] View database statistics. Number of accounts, transactions, etc.
 - [ ] Verify database schema.
 - [ ] View and edit transaction labels.
+- [ ] Find and remove empty transactions, labels.
 - [ ] Push/pull database using ADB shell.
 - [ ] Backup/restore database.
-- [ ] Keyboard navigation.
+- [ ] Full keyboard navigation.
 
-(unordered)
+### Bugs
+
+- [ ] Menu bar doesn's react to arrow keys.
 
 ## Database backup/restore
 
