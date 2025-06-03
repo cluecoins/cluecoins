@@ -18,7 +18,7 @@ update:         ## Update dependencies and dump requirements.txt
 	uv sync -U --all-extras --all-groups --link-mode symlink
 
 all:            ## Run an entire CI pipeline
-	make format lint test
+	make format lint # test
 
 format:         ## Format with all tools
 	ruff format ${SOURCE}

@@ -1,41 +1,69 @@
+from collections.abc import AsyncGenerator
+from contextlib import asynccontextmanager
 from datetime import date
 from decimal import Decimal
 from pathlib import Path
 
+import xdg
 from aiosqlite import Connection
 from aiosqlite import connect
 
+DEFAULT_DB_PATH = xdg.XDG_DATA_HOME / 'cluecoins' / 'db.sqlite3'
+DEFAULT_CACHE_PATH = xdg.XDG_CACHE_HOME / 'cluecoins' / 'cache.sqlite3'
 
-class Storage:
-    """Create and managing the local SQLite database."""
 
-    def __init__(self, db_path: Path) -> None:
-        """Create file with temorary database"""
-        self._path = db_path
-        self._db: Connection | None = None
+class LocalStorage:
+    def __init__(
+        self,
+        db_path: Path | None = None,
+        cache_path: Path | None = None,
+    ) -> None:
+        self._db_path = db_path or DEFAULT_DB_PATH
+        self._cache_path = cache_path or DEFAULT_CACHE_PATH
+        self._db_conn: Connection | None = None
+        self._cache_conn: Connection | None = None
 
     @property
-    def db(self) -> Connection:
-        if self._db is None:
-            self._db = self.connect_to_database()
-        return self._db
+    def db_conn(self) -> Connection:
+        if self._db_conn is None:
+            raise Exception
+        return self._db_conn
 
-    def connect_to_database(self) -> Connection:
-        self._path.parent.mkdir(parents=True, exist_ok=True)
-        self._path.touch(exist_ok=True)
-        return connect(self._path)
+    @property
+    def cache_conn(self) -> Connection:
+        if self._cache_conn is None:
+            raise Exception
+        return self._cache_conn
 
-    async def create_quote_table(self) -> None:
-        await self.db.execute(
+    @asynccontextmanager
+    async def connect(self) -> AsyncGenerator[None, None]:
+        self._db_path.parent.mkdir(parents=True, exist_ok=True)
+        self._db_path.touch(exist_ok=True)
+
+        self._cache_path.parent.mkdir(parents=True, exist_ok=True)
+        self._cache_path.touch(exist_ok=True)
+
+        self._db_conn = connect(self._db_path)
+        self._cache_conn = connect(self._cache_path)
+
+        async with self._db_conn, self._cache_conn:
+            yield
+
+        self._db_conn = None
+        self._cache_conn = None
+
+    async def create_schema(self) -> None:
+        await self.cache_conn.execute(
             'CREATE TABLE IF NOT EXISTS quotes (date date, base_currency text, quote_currency text, rate text, PRIMARY KEY (date, base_currency, quote_currency))'
         )
 
     async def commit(self) -> None:
-        await self.db.commit()
+        await self.db_conn.commit()
+        await self.cache_conn.commit()
 
     async def get_quote(self, date: date, base_currency: str, quote_currency: str) -> Decimal | None:
         res = await (
-            await self.db.execute(
+            await self.cache_conn.execute(
                 'SELECT rate FROM quotes WHERE date = ? AND base_currency = ? AND quote_currency = ?',
                 (date, base_currency, quote_currency),
             )
@@ -45,15 +73,13 @@ class Storage:
         return None
 
     async def add_quote(self, date: date, base_currency: str, quote_currency: str, rate: Decimal) -> None:
-        await self.db.execute(
+        await self.cache_conn.execute(
             'INSERT INTO quotes (date, base_currency, quote_currency, rate) VALUES (?, ?, ?, ?)',
             (date, base_currency, quote_currency, str(rate)),
         )
 
 
 class BluecoinsStorage:
-    """Managing the Bluecoins database"""
-
     def __init__(self, conn: Connection) -> None:
         self.conn = conn
 

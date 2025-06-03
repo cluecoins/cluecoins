@@ -13,8 +13,8 @@
 #     """Fixture to set up the temporary local database"""
 
 #     db_path = tmp_path / 'cluecoins' / 'cluecoins.db'
-#     storage = Storage(db_path)
-#     storage.create_quote_table()
+#     storage = LocalStorage(db_path)
+#     storage.create_schema()
 
 #     yield storage
 

@@ -7,7 +7,7 @@ from os import environ as env
 import aiohttp
 from aiosqlite import IntegrityError
 
-from cluecoins.storage import Storage
+from cluecoins.storage import LocalStorage
 from cluecoins.ui import LOG
 
 CB_API_URL = 'https://api.currencybeacon.com'
@@ -15,7 +15,7 @@ CB_API_KEY = env.get('CB_API_KEY', 'BF178aNPAdfPW6YjqbYGL5CmztO4qLNY')
 
 
 class CurrencyBeaconQuoteProvider:
-    def __init__(self, storage: Storage) -> None:
+    def __init__(self, storage: LocalStorage) -> None:
         self._storage = storage
         self._quote_currencies: set[str] = set()
         self._request_count = 0

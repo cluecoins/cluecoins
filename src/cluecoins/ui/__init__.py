@@ -5,7 +5,6 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 from typing import ClassVar
 
-import xdg
 from textual import on
 from textual.app import App
 from textual.app import ComposeResult
@@ -18,7 +17,7 @@ from textual.widgets import DirectoryTree
 from textual.widgets import RichLog
 from textual.widgets import Static
 
-from cluecoins.storage import Storage
+from cluecoins.storage import LocalStorage
 
 if TYPE_CHECKING:
     from aiosqlite import Connection
@@ -65,7 +64,7 @@ class MenuBar(Container):
         yield MenuButton('View', id='view_menu_button')
         yield MenuButton('Tools', id='tools_menu_button')
         yield MenuButton('Help', id='help_menu_button')
-        yield MenuButton('\[🏠]', id='main_menu_button')
+        yield MenuButton('▏🏠▕', id='main_menu_button')
 
     @on(Button.Pressed, '#file_menu_button')
     def show_file_menu(self, event):
@@ -141,14 +140,14 @@ class QuotesScreen(BaseScreen):
         self._data = DataTable()
 
     async def on_mount(self):
-        storage = Storage(Path(xdg.xdg_data_home()) / 'cluecoins' / 'cluecoins.db')
+        storage = LocalStorage()
 
         quotes = defaultdict(int)
-        async with storage.db:
-            await storage.create_quote_table()
+        async with storage.connect():
+            await storage.create_schema()
 
             # TODO: sql
-            async for date, base_currency, quote_currency in await storage.db.execute(
+            async for date, base_currency, quote_currency in await storage.cache_conn.execute(
                 'SELECT date, base_currency, quote_currency FROM quotes ORDER BY base_currency, quote_currency, date'
             ):
                 quotes[f'{base_currency}{quote_currency} {date[:4]}'] += 1

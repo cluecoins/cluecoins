@@ -1,9 +1,6 @@
 import logging
 from collections.abc import Callable
 from decimal import Decimal
-from pathlib import Path
-
-import xdg
 
 # from cluecoins.database import ENCODED_LABEL_PREFIX
 from cluecoins.database import connect_local_db
@@ -24,7 +21,7 @@ from cluecoins.database import update_transaction
 from cluecoins.quotes import CurrencyBeaconQuoteProvider
 
 # from cluecoins.storage import BluecoinsStorage
-from cluecoins.storage import Storage
+from cluecoins.storage import LocalStorage
 
 logging.basicConfig(level=logging.DEBUG)
 
@@ -43,11 +40,11 @@ def q(v: Decimal, prec: int = 2) -> Decimal:
 async def convert(base_currency: str, db_path: str, log: Callable) -> None:
     conn = connect_local_db(db_path)
 
-    storage = Storage(Path(xdg.xdg_data_home()) / 'cluecoins' / 'cluecoins.db')
+    storage = LocalStorage()
 
-    async with conn, storage.db:
+    async with storage.connect(), conn:
         cache = CurrencyBeaconQuoteProvider(storage)
-        await storage.create_quote_table()
+        await storage.create_schema()
 
         await set_base_currency(conn, base_currency)
 

@@ -46,16 +46,18 @@ Consider registering on the site to get your own API key and set `CB_API_KEY` en
 - [ ] Push/pull database using ADB shell.
 - [ ] Backup/restore database.
 - [ ] Full keyboard navigation.
-
-### Bugs
-
-- [ ] Menu bar doesn's react to arrow keys.
+  - [ ] Fix menubar not reacting to arrow keys.
+  - [ ] Focus nested widgets when switching screen.
 
 ## Database backup/restore
 
 1. Open the Bluecoins app. Go to *Settings -> Data Management -> Phone Storage -> Backup to phone storage*.
 2. Transfer created `*.fydb` database backup file to the PC.
 3. After performing operations on that file transfer it to the smartphone. Go to *Settings -> Data Management -> Phone Storage -> Restore from phone storage*. Choose created file.
+
+## Local storage
+
+cluecoins uses `~/.local/share/cluecoins` directory to store persistent data and `~/.cache/cluecoins` for cache. The latter can be safely deleted.
 
 ## Known Bluecoins 12.x issues
 
