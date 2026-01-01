@@ -16,6 +16,8 @@ from textual.widgets import DataTable
 from textual.widgets import DirectoryTree
 from textual.widgets import RichLog
 from textual.widgets import Static
+from zandev_textual_widgets import MenuScreen
+from cluecoins.ui import menu
 
 from cluecoins.storage import LocalStorage
 
@@ -43,57 +45,9 @@ class BaseScreen(Static):
 
     def navigate_back_to_main(self):
         """Navigate back to the main screen."""
-        self.app.navigate_to_screen('main_screen', MainScreen)
-
-
-class MenuButton(Button):
-    def __init__(self, *a, **kw):
-        super().__init__(*a, **kw)
-        self.add_class('menu_button')
-
-
-class MenuBar(Container):
-    """A menu bar component for the top menu buttons only."""
-
-    def __init__(self):
-        super().__init__(id='menu_bar')
-
-    def compose(self) -> ComposeResult:
-        yield MenuButton('File', id='file_menu_button')
-        yield MenuButton('Edit', id='edit_menu_button')
-        yield MenuButton('View', id='view_menu_button')
-        yield MenuButton('Tools', id='tools_menu_button')
-        yield MenuButton('Help', id='help_menu_button')
-        yield MenuButton('▏🏠▕', id='main_menu_button')
-
-    @on(Button.Pressed, '#file_menu_button')
-    def show_file_menu(self, event):
-        app = self.app
-        app.show_menu('file_menu', 0)
-
-    @on(Button.Pressed, '#edit_menu_button')
-    def show_edit_menu(self, event):
-        app = self.app
-        app.show_menu('edit_menu', 22)
-
-    @on(Button.Pressed, '#view_menu_button')
-    def show_view_menu(self, event):
-        app = self.app
-        app.show_menu('view_menu', 44)
-
-    @on(Button.Pressed, '#tools_menu_button')
-    def show_tools_menu(self, event):
-        app = self.app
-        app.show_menu('tools_menu', 66)
-
-    @on(Button.Pressed, '#help_menu_button')
-    def show_help_menu(self, event):
-        app = self.app
-        app.show_menu('help_menu', 88)
-
-    @on(Button.Pressed, '#main_menu_button')
-    def show_main_menu(self, event):
-        self.app.navigate_to_screen('main_screen', MainScreen)
+        ...
+        # (self.app.navigate_to_screen('menu', menu.MenuScreen),)
+        # self.app.navigate_to_screen('main_screen', MainScreen)
 
 
 class MainScreen(BaseScreen):
@@ -210,6 +164,20 @@ class OpenFileScreen(BaseScreen):
         self.navigate_back_to_main()
 
 
+class CluecoinsMenuScreen(MenuScreen):
+    """Custom MenuScreen that mounts all the menus defined in menu.py"""
+    
+    async def on_mount(self):
+        # Mount all the menus from menu.py
+        self.mount(menu.file_menu)
+        self.mount(menu.edit_menu)  
+        self.mount(menu.view_menu)
+        self.mount(menu.tools_menu)
+        self.mount(menu.help_menu)
+        
+        await super().on_mount()
+
+
 class CluecoinsApp(App):
     """A Textual app to manage Cluecoinses."""
 
@@ -217,6 +185,10 @@ class CluecoinsApp(App):
         ('q', 'quit', 'Quit the app'),
     ]
     CSS_PATH = 'style.tcss'
+    SCREENS = {  # noqa: RUF012
+        'menu': CluecoinsMenuScreen,
+        'open_file_screen': OpenFileScreen,
+    }
 
     def __init__(self):
         super().__init__()
@@ -227,7 +199,6 @@ class CluecoinsApp(App):
         )
         self._db_path: Path | None = None
         self._db_conn: Connection | None = None
-        self._menu_bar = MenuBar()
 
     def database_connect(self, db_path: Path) -> None:
         self._db_path = db_path
@@ -247,7 +218,7 @@ class CluecoinsApp(App):
 
     def navigate_to_screen(self, screen_id: str, screen_class):
         """Navigate to a screen, creating it if it doesn't exist."""
-        self.hide_all_menus()
+        # self.hide_all_menus()
 
         self.app.query('.screen').set(display=False)
 
@@ -264,38 +235,8 @@ class CluecoinsApp(App):
             )
 
     def compose(self):
-        yield self._menu_bar
-        yield Container(
-            MenuButton('Open File', id='open_file_button'),
-            MenuButton('Open Device', id='open_device_button', disabled=True),
-            MenuButton('Disconnect', disabled=True),
-            MenuButton('Exit', id='exit'),
-            id='file_menu',
-            classes='menu_column hidden',
-        )
-        yield Container(
-            MenuButton('Accounts', disabled=True),
-            MenuButton('Labels', disabled=True),
-            id='edit_menu',
-            classes='menu_column hidden',
-        )
-        yield Container(
-            MenuButton('Statistics', id='statistics_button'),
-            MenuButton('Cached Quotes', id='cached_quotes_button'),
-            id='view_menu',
-            classes='menu_column hidden',
-        )
-        yield Container(
-            MenuButton('Fetch Quotes', id='fetch_quotes_button'),
-            MenuButton('Change Currency', id='change_currency_button', disabled=True),
-            id='tools_menu',
-            classes='menu_column hidden',
-        )
-        yield Container(
-            MenuButton('About', disabled=True),
-            id='help_menu',
-            classes='menu_column hidden',
-        )
+
+        yield menu.bar
         yield Container(
             self._content,
             classes='window',
@@ -303,42 +244,24 @@ class CluecoinsApp(App):
         yield LOG
         yield self._status_bar
 
-    def hide_all_menus(self):
-        """Hide all dropdown menus."""
-        self.query('.menu_column').add_class('hidden')
-
-    def show_menu(self, menu_id: str, x_offset: int):
-        """Show a specific menu at the given x offset."""
-        menu = self.query_one(f'#{menu_id}')
-        is_hidden = menu.has_class('hidden')
-        self.hide_all_menus()
-
-        if is_hidden:
-            menu.remove_class('hidden')
-            menu.styles.offset = (x_offset, 1)
-
-    @on(Button.Pressed, '#exit')
-    async def on_exit_pressed(self, event):
-        sys.exit(0)
-
-    @on(Button.Pressed, '#open_file_button')
-    async def on_open_file_pressed(self, event):
-        self.navigate_to_screen('open_file_screen', OpenFileScreen)
-
-    @on(Button.Pressed, '#cached_quotes_button')
-    async def on_cached_quotes_pressed(self, event):
-        self.navigate_to_screen('quotes_screen', QuotesScreen)
-
-    @on(Button.Pressed, '#statistics_button')
-    async def on_statistics_pressed(self, event):
-        self.navigate_to_screen('statistics_screen', StatisticsScreen)
-
-    @on(Button.Pressed, '#fetch_quotes_button')
-    async def on_fetch_quotes_pressed(self, event):
-        self.navigate_to_screen('fetch_quotes_screen', FetchQuotesScreen)
-
     def on_mount(self) -> None:
         self.navigate_to_screen('main_screen', MainScreen)
+
+    # Menu action handlers
+    def action_exit(self):
+        self.exit()
+
+    def action_open_file(self):
+        self.navigate_to_screen('open_file_screen', OpenFileScreen)
+
+    def action_cached_quotes(self):
+        self.navigate_to_screen('quotes_screen', QuotesScreen)
+
+    def action_statistics(self):
+        self.navigate_to_screen('statistics_screen', StatisticsScreen)
+
+    def action_fetch_quotes(self):
+        self.navigate_to_screen('fetch_quotes_screen', FetchQuotesScreen)
 
 
 def run() -> None:
