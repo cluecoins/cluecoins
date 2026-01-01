@@ -61,21 +61,22 @@ class LocalStorage:
         await self.db_conn.commit()
         await self.cache_conn.commit()
 
-    async def get_quote(self, date: date, base_currency: str, quote_currency: str) -> Decimal | None:
+    async def get_quote(self, date_: date, base_currency: str, quote_currency: str) -> Decimal | None:
+        date_ = date(year=date_.year, month=date_.month, day=date_.day)
         res = await (
             await self.cache_conn.execute(
                 'SELECT rate FROM quotes WHERE date = ? AND base_currency = ? AND quote_currency = ?',
-                (date, base_currency, quote_currency),
+                (date_, base_currency, quote_currency),
             )
         ).fetchone()
         if res:
             return Decimal(str(res[0]))
         return None
 
-    async def add_quote(self, date: date, base_currency: str, quote_currency: str, rate: Decimal) -> None:
+    async def add_quote(self, date_: date, base_currency: str, quote_currency: str, rate: Decimal) -> None:
         await self.cache_conn.execute(
             'INSERT INTO quotes (date, base_currency, quote_currency, rate) VALUES (?, ?, ?, ?)',
-            (date, base_currency, quote_currency, str(rate)),
+            (date_, base_currency, quote_currency, str(rate)),
         )
 
 
