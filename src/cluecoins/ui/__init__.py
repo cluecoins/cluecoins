@@ -18,6 +18,7 @@ from textual.widgets import RichLog
 from textual.widgets import Static
 
 from cluecoins.storage import LocalStorage
+from aiosqlite import connect
 
 if TYPE_CHECKING:
     from aiosqlite import Connection
@@ -166,10 +167,39 @@ class QuotesScreen(BaseScreen):
 
 
 class StatisticsScreen(BaseScreen):
-    async def on_mount(self): ...
+    def __init__(self):
+        super().__init__()
+        self._data = DataTable()
+
+    async def on_mount(self):
+        db_path = self.app._db_path
+
+        self._data.add_column('table')
+        self._data.add_column('count')
+
+        if not db_path:
+            LOG.write('no database connected')
+            return
+
+        async with connect(db_path) as conn:
+            cur = await conn.execute(
+                "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name"
+            )
+            tables = await cur.fetchall()
+
+            for (table_name,) in tables:
+                try:
+                    cnt_cur = await conn.execute(f"SELECT COUNT(*) FROM '{table_name}'")
+                    cnt_row = await cnt_cur.fetchone()
+                    count = cnt_row[0] if cnt_row is not None else 0
+                except Exception:
+                    count = 'err'
+
+                self._data.add_row(table_name, count)
 
     def compose(self) -> ComposeResult:
-        yield Static('')
+        yield Static('Database table row counts')
+        yield self._data
 
 
 class OpenFileScreen(BaseScreen):
