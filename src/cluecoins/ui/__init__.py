@@ -187,6 +187,59 @@ class QuotesScreen(BaseScreen):
         yield self._data
 
 
+class TableRowsScreen(BaseScreen):
+    """Screen that displays rows of a selected table."""
+
+    db_path: Path = Path()
+    table_name: str = ''
+
+    def __init__(self):
+        super().__init__()
+        self._data = DataTable()
+
+    async def _get_columns(self, conn) -> list[str]:
+        cur = await conn.execute(f"PRAGMA table_info('{self.table_name}')")
+        rows = await cur.fetchall()
+        return [row[1] for row in rows]
+
+    async def _get_primary_key(self, conn) -> str | None:
+        cur = await conn.execute(f"PRAGMA table_info('{self.table_name}')")
+        rows = await cur.fetchall()
+        pk_cols = sorted(
+            [(row[1], row[5]) for row in rows if row[5] > 0],
+            key=lambda x: x[1],
+        )
+        if pk_cols:
+            return ', '.join(f"'{col[0]}'" for col in pk_cols)
+        return None
+
+    async def on_mount(self):
+        async with connect(self.db_path) as conn:
+            columns = await self._get_columns(conn)
+            if not columns:
+                LOG.write(f"no columns found for table '{self.table_name}'")
+                return
+
+            for col in columns:
+                self._data.add_column(col, key=col)
+
+            pk_clause = await self._get_primary_key(conn)
+            order_by = f' ORDER BY {pk_clause}' if pk_clause else ''
+
+            cur = await conn.execute(f"SELECT * FROM '{self.table_name}'{order_by}")
+            rows = await cur.fetchall()
+
+            for row in rows:
+                self._data.add_row(*[str(v) if v is not None else '' for v in row])
+
+    def compose(self) -> ComposeResult:
+        yield Static(f'Rows of: {self.table_name}')
+        yield self._data
+
+    async def key_escape(self):
+        self.app.navigate_to_screen('statistics_screen', StatisticsScreen)
+
+
 class StatisticsScreen(BaseScreen):
     def __init__(self):
         super().__init__()
@@ -197,6 +250,7 @@ class StatisticsScreen(BaseScreen):
 
         self._data.add_column('table')
         self._data.add_column('count')
+        self._data.cursor_type = 'row'
 
         if not db_path:
             LOG.write('no database connected')
@@ -216,11 +270,22 @@ class StatisticsScreen(BaseScreen):
                 except Exception:
                     count = 'err'
 
-                self._data.add_row(table_name, count)
+                self._data.add_row(table_name, count, key=table_name)
 
     def compose(self) -> ComposeResult:
         yield Static('Database table row counts')
         yield self._data
+
+    async def on_data_table_row_selected(self, event: DataTable.RowSelected):
+        table_name = str(event.row_key.value)
+        db_path = self.app._db_path
+        if db_path:
+            TableRowsScreen.db_path = db_path
+            TableRowsScreen.table_name = table_name
+            self.app.navigate_to_screen('table_rows_screen', TableRowsScreen)
+
+    async def key_escape(self):
+        self.app.navigate_to_screen('statistics_screen', StatisticsScreen)
 
 
 class OpenFileScreen(BaseScreen):
