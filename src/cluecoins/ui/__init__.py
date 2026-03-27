@@ -1,3 +1,4 @@
+import logging
 import subprocess
 import sys
 from collections import defaultdict
@@ -5,6 +6,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 from typing import ClassVar
 
+from aiosqlite import connect
 from textual import on
 from textual.app import App
 from textual.app import ComposeResult
@@ -21,6 +23,26 @@ from cluecoins.storage import LocalStorage
 
 if TYPE_CHECKING:
     from aiosqlite import Connection
+
+
+# TODO: cleanup
+_file_logger = logging.getLogger('file_logger')
+_file_logger.setLevel(logging.DEBUG)
+_file_handler = logging.FileHandler('cluecoins.log')
+_file_handler.setLevel(logging.DEBUG)
+_file_formatter = logging.Formatter('%(asctime)s - %(message)s')
+_file_handler.setFormatter(_file_formatter)
+_file_logger.addHandler(_file_handler)
+
+orig_write = RichLog.write
+
+
+def write(*a, **kw) -> None:
+    orig_write(*a, **kw)
+    _file_logger.debug(a[1])
+
+
+RichLog.write = write  # type: ignore[method-assign,assignment]
 
 LOG = RichLog()
 LOG.styles.height = 10
@@ -166,10 +188,39 @@ class QuotesScreen(BaseScreen):
 
 
 class StatisticsScreen(BaseScreen):
-    async def on_mount(self): ...
+    def __init__(self):
+        super().__init__()
+        self._data = DataTable()
+
+    async def on_mount(self):
+        db_path = self.app._db_path
+
+        self._data.add_column('table')
+        self._data.add_column('count')
+
+        if not db_path:
+            LOG.write('no database connected')
+            return
+
+        async with connect(db_path) as conn:
+            cur = await conn.execute(
+                "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name"
+            )
+            tables = await cur.fetchall()
+
+            for (table_name,) in tables:
+                try:
+                    cnt_cur = await conn.execute(f"SELECT COUNT(*) FROM '{table_name}'")
+                    cnt_row = await cnt_cur.fetchone()
+                    count = cnt_row[0] if cnt_row is not None else 0
+                except Exception:
+                    count = 'err'
+
+                self._data.add_row(table_name, count)
 
     def compose(self) -> ComposeResult:
-        yield Static('')
+        yield Static('Database table row counts')
+        yield self._data
 
 
 class OpenFileScreen(BaseScreen):

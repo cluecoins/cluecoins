@@ -40,6 +40,7 @@ class CurrencyBeaconQuoteProvider:
             'symbols': ','.join(self._quote_currencies),
         }
         async with aiohttp.ClientSession() as session:
+            LOG.write(f'{params}')
             LOG.write(f'Fetching quotes for {base_currency} {date_}...')
             LOG.write(f'Request count: {self._request_count}')
             self._request_count += 1
@@ -51,7 +52,9 @@ class CurrencyBeaconQuoteProvider:
                 response_json = await response.json()
 
         for quote_date, items in response_json['response'].items():
+            LOG.write(f'{quote_date}, {len(items)}')
             for quote_currency, rate in items.items():
+                LOG.write(f'{quote_currency}: {rate}')
                 if rate is None:
                     LOG.write(f'No rate for {quote_date} {base_currency} {quote_currency}')
                     continue
