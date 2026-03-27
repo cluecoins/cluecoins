@@ -1,5 +1,6 @@
 import logging
 from collections.abc import Callable
+from datetime import date
 from decimal import Decimal
 
 # from cluecoins.database import ENCODED_LABEL_PREFIX
@@ -48,8 +49,8 @@ async def convert(base_currency: str, db_path: str, log: Callable) -> None:
 
         await set_base_currency(conn, base_currency)
 
-        async for date, id_, rate, currency, amount in iter_transactions(conn):
-            true_rate = await cache.get_rate(date, base_currency, currency)
+        async for date_, id_, rate, currency, amount in iter_transactions(conn):
+            true_rate = await cache.get_rate(date_.date(), base_currency, currency)
 
             if true_rate is None or true_rate == rate:
                 continue
