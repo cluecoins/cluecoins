@@ -19,6 +19,7 @@ dependencies = [
     "textual>=0.71.0",
     "aiohttp>=3.9.5",
     "aiosqlite>=0.20.0",
+    "zandev-textual-widgets>=1.0.0,<2",
 ]
 
 [dependency-groups]
@@ -50,10 +51,18 @@ quote-style = "single"
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
+filterwarnings = [
+    # Textual message pump cleanup hits a ContextVar mismatch on Python 3.14 during run_test() teardown
+    "ignore::pytest.PytestUnraisableExceptionWarning",
+]
 
 [tool.mypy]
 python_version = "3.12"
 strict = false
+
+[[tool.mypy.overrides]]
+module = "zandev_textual_widgets.*"
+ignore_missing_imports = true
 
 [build-system]
 requires = ["uv_build"]

@@ -17,8 +17,12 @@ from textual.widgets import DataTable
 from textual.widgets import DirectoryTree
 from textual.widgets import RichLog
 from textual.widgets import Static
+from zandev_textual_widgets import MenuScreen
+from zandev_textual_widgets.menu import Menu
+from zandev_textual_widgets.menu import MenuItem
 
 from cluecoins.storage import LocalStorage
+from cluecoins.ui import menu
 
 if TYPE_CHECKING:
     from aiosqlite import Connection
@@ -50,89 +54,13 @@ To get started, select "Open File" from the File menu to open a database file.
 """
 
 
-class MenuButton(Button):
-    def __init__(self, *a, **kw):
-        super().__init__(*a, **kw)
-        self.add_class('menu_button')
-
-
-class MenuBar(Container):
-    """A menu bar component for the top menu buttons only."""
-
-    def __init__(self):
-        super().__init__(id='menu_bar')
-
-    def compose(self) -> ComposeResult:
-        yield MenuButton('File', id='file_menu_button')
-        yield MenuButton('Edit', id='edit_menu_button')
-        yield MenuButton('View', id='view_menu_button')
-        yield MenuButton('Tools', id='tools_menu_button')
-        yield MenuButton('Help', id='help_menu_button')
-        yield MenuButton('▏🏠▕', id='main_menu_button')
-
-    @on(Button.Pressed, '#file_menu_button')
-    def show_file_menu(self, event):
-        self.screen.show_menu('file_menu', 0)  # type: ignore[attr-defined]
-
-    @on(Button.Pressed, '#edit_menu_button')
-    def show_edit_menu(self, event):
-        self.screen.show_menu('edit_menu', 22)  # type: ignore[attr-defined]
-
-    @on(Button.Pressed, '#view_menu_button')
-    def show_view_menu(self, event):
-        self.screen.show_menu('view_menu', 44)  # type: ignore[attr-defined]
-
-    @on(Button.Pressed, '#tools_menu_button')
-    def show_tools_menu(self, event):
-        self.screen.show_menu('tools_menu', 66)  # type: ignore[attr-defined]
-
-    @on(Button.Pressed, '#help_menu_button')
-    def show_help_menu(self, event):
-        self.screen.show_menu('help_menu', 88)  # type: ignore[attr-defined]
-
-    @on(Button.Pressed, '#main_menu_button')
-    def go_home(self, event):
-        self.app.switch_screen(MainScreen())
-
-
 class BaseScreen(Screen):
     """Base screen with always-visible menubar, log, and status bar."""
 
     app: 'CluecoinsApp'
 
     def compose(self) -> ComposeResult:
-        yield MenuBar()
-        yield Container(
-            MenuButton('Open File', id='open_file_button'),
-            MenuButton('Open Device', id='open_device_button', disabled=True),
-            MenuButton('Disconnect', disabled=True),
-            MenuButton('Exit', id='exit'),
-            id='file_menu',
-            classes='menu_column hidden',
-        )
-        yield Container(
-            MenuButton('Accounts', disabled=True),
-            MenuButton('Labels', disabled=True),
-            id='edit_menu',
-            classes='menu_column hidden',
-        )
-        yield Container(
-            MenuButton('Statistics', id='statistics_button'),
-            MenuButton('Cached Quotes', id='cached_quotes_button'),
-            id='view_menu',
-            classes='menu_column hidden',
-        )
-        yield Container(
-            MenuButton('Fetch Quotes', id='fetch_quotes_button'),
-            MenuButton('Change Currency', id='change_currency_button', disabled=True),
-            id='tools_menu',
-            classes='menu_column hidden',
-        )
-        yield Container(
-            MenuButton('About', disabled=True),
-            id='help_menu',
-            classes='menu_column hidden',
-        )
+        yield menu.bar()
         with Container(classes='window'):
             yield from self.compose_content()
         yield RichLog(id='log')
@@ -146,17 +74,6 @@ class BaseScreen(Screen):
         for msg in self.app._log_history:
             log.write(msg)
         self.query_one('#status_bar', Static).update(self.app._status_text)
-
-    def hide_all_menus(self) -> None:
-        self.query('.menu_column').add_class('hidden')
-
-    def show_menu(self, menu_id: str, x_offset: int) -> None:
-        menu = self.query_one(f'#{menu_id}')
-        is_hidden = menu.has_class('hidden')
-        self.hide_all_menus()
-        if is_hidden:
-            menu.remove_class('hidden')
-            menu.styles.offset = (x_offset, 1)
 
 
 class MainScreen(BaseScreen):
@@ -379,6 +296,45 @@ class OpenFileScreen(BaseScreen):
         self.app.switch_screen(MainScreen())
 
 
+class CluecoinsMenuScreen(MenuScreen):
+    """MenuScreen that hosts the dropdown menu widgets."""
+
+    def compose(self) -> ComposeResult:
+        yield from super().compose()
+        yield Menu(
+            MenuItem('Open File', menu_action='app.open_file'),
+            MenuItem('Open Device', disabled=True),
+            MenuItem('Disconnect', disabled=True),
+            MenuItem('Exit', menu_action='app.exit'),
+            name='File',
+            id='file_menu',
+        )
+        yield Menu(
+            MenuItem('Transactions', disabled=True),
+            MenuItem('Accounts', disabled=True),
+            MenuItem('Labels', disabled=True),
+            name='Edit',
+            id='edit_menu',
+        )
+        yield Menu(
+            MenuItem('Statistics', menu_action='app.statistics'),
+            MenuItem('Cached Quotes', menu_action='app.cached_quotes'),
+            name='View',
+            id='view_menu',
+        )
+        yield Menu(
+            MenuItem('Fetch Quotes', menu_action='app.fetch_quotes'),
+            MenuItem('Change Currency', disabled=True),
+            name='Tools',
+            id='tools_menu',
+        )
+        yield Menu(
+            MenuItem('About', disabled=True),
+            name='Help',
+            id='help_menu',
+        )
+
+
 class CluecoinsApp(App):
     """A Textual app to manage Cluecoinses."""
 
@@ -386,6 +342,9 @@ class CluecoinsApp(App):
         ('q', 'quit', 'Quit the app'),
     ]
     CSS_PATH = 'style.tcss'
+    SCREENS = {  # noqa: RUF012
+        'menu': CluecoinsMenuScreen,
+    }
 
     def __init__(self):
         super().__init__()
@@ -424,28 +383,23 @@ class CluecoinsApp(App):
         except NoMatches:
             pass
 
-    @on(Button.Pressed, '#exit')
-    async def on_exit_pressed(self, event):
-        self.exit()
-
-    @on(Button.Pressed, '#open_file_button')
-    async def on_open_file_pressed(self, event):
-        self.switch_screen(OpenFileScreen())
-
-    @on(Button.Pressed, '#cached_quotes_button')
-    async def on_cached_quotes_pressed(self, event):
-        self.switch_screen(QuotesScreen())
-
-    @on(Button.Pressed, '#statistics_button')
-    async def on_statistics_pressed(self, event):
-        self.switch_screen(StatisticsScreen())
-
-    @on(Button.Pressed, '#fetch_quotes_button')
-    async def on_fetch_quotes_pressed(self, event):
-        self.switch_screen(FetchQuotesScreen())
-
     def on_mount(self) -> None:
         self.push_screen(MainScreen())
+
+    def action_exit(self) -> None:
+        self.exit()
+
+    def action_open_file(self) -> None:
+        self.switch_screen(OpenFileScreen())
+
+    def action_cached_quotes(self) -> None:
+        self.switch_screen(QuotesScreen())
+
+    def action_statistics(self) -> None:
+        self.switch_screen(StatisticsScreen())
+
+    def action_fetch_quotes(self) -> None:
+        self.switch_screen(FetchQuotesScreen())
 
 
 def run() -> None:
