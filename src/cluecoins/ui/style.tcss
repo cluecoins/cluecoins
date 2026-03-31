@@ -12,7 +12,18 @@
     padding: 1;
     margin: 1;
     border: solid grey;
+    height: 1fr;
     align: left top;
+}
+
+#log {
+    height: 10;
+}
+
+#table-rows-footer {
+    dock: bottom;
+    height: 5;
+    align: center middle;
 }
 
 .horizontal {

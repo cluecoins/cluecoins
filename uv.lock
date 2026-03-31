@@ -256,7 +256,7 @@ requires-dist = [
     { name = "pyyaml", specifier = ">=6.0" },
     { name = "textual", specifier = ">=0.71.0" },
     { name = "xdg", specifier = ">=5.1.1" },
-    { name = "zandev-textual-widgets", specifier = ">=1.0.0" },
+    { name = "zandev-textual-widgets", specifier = ">=1.0.0,<2" },
 ]
 
 [package.metadata.requires-dev]

@@ -19,7 +19,7 @@ dependencies = [
     "textual>=0.71.0",
     "aiohttp>=3.9.5",
     "aiosqlite>=0.20.0",
-    "zandev-textual-widgets>=1.0.0",
+    "zandev-textual-widgets>=1.0.0,<2",
 ]
 
 [dependency-groups]
@@ -55,6 +55,9 @@ asyncio_mode = "auto"
 [tool.mypy]
 python_version = "3.12"
 strict = false
+
+[[tool.mypy.overrides]]
+module = "zandev_textual_widgets.*"
 ignore_missing_imports = true
 
 [build-system]
