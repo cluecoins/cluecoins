@@ -102,8 +102,14 @@ class FetchQuotesScreen(BaseScreen):
         self.query_one('#status_bar', Static).update('fetching quotes...')
         self.query_one('#ok').disabled = True
         self.query_one('#back').disabled = True
+        self.app._is_busy = True
+        self.app.refresh_menu_state()
 
-        await convert('USD', str(self.app._db_path), self.app.log_write)
+        try:
+            await convert('USD', str(self.app._db_path), self.app.log_write)
+        finally:
+            self.app._is_busy = False
+            self.app.refresh_menu_state()
 
         self.app._status_text = 'quotes fetched'
         self.query_one('#status_bar', Static).update(self.app._status_text)
@@ -312,16 +318,48 @@ class CluecoinsMenuScreen(MenuScreen):
 
     app: 'CluecoinsApp'
 
+    _DB_REQUIRED_IDS: ClassVar[tuple[str, ...]] = (
+        '#statistics_menu_item',
+        '#fetch_quotes_menu_item',
+        '#disconnect_menu_item',
+    )
+    _BUSY_LOCKED_IDS: ClassVar[tuple[str, ...]] = (
+        '#open_file_menu_item',
+        '#statistics_menu_item',
+        '#fetch_quotes_menu_item',
+        '#disconnect_menu_item',
+        '#cached_quotes_menu_item',
+    )
+
+    def _apply_db_state(self) -> None:
+        has_db = self.app._db_path
+        for item_id in self._DB_REQUIRED_IDS:
+            self.query_one(item_id, MenuItem).disabled = not has_db
+
+    def _apply_busy_state(self) -> None:
+        is_busy = self.app._is_busy
+        has_db = self.app._db_path
+        for item_id in self._BUSY_LOCKED_IDS:
+            item = self.query_one(item_id, MenuItem)
+            if is_busy:
+                item.disabled = True
+            else:
+                item.disabled = item_id in self._DB_REQUIRED_IDS and not has_db
+
     async def on_mount(self) -> None:
-        if not self.app._db_path:
-            self.query_one('#statistics_menu_item', MenuItem).disabled = True
+        self._apply_db_state()
+        self._apply_busy_state()
+
+    def on_screen_resume(self) -> None:
+        self._apply_db_state()
+        self._apply_busy_state()
 
     def compose(self) -> ComposeResult:
         yield from super().compose()
         yield Menu(
-            MenuItem('Open File', menu_action='app.open_file'),
+            MenuItem('Open File', menu_action='app.open_file', id='open_file_menu_item'),
             MenuItem('Open Device', disabled=True),
-            MenuItem('Disconnect', disabled=True),
+            MenuItem('Disconnect', id='disconnect_menu_item'),
             MenuItem('Exit', menu_action='app.exit'),
             name='File',
             id='file_menu',
@@ -335,12 +373,12 @@ class CluecoinsMenuScreen(MenuScreen):
         )
         yield Menu(
             MenuItem('Statistics', menu_action='app.statistics', id='statistics_menu_item'),
-            MenuItem('Cached Quotes', menu_action='app.cached_quotes'),
+            MenuItem('Cached Quotes', menu_action='app.cached_quotes', id='cached_quotes_menu_item'),
             name='View',
             id='view_menu',
         )
         yield Menu(
-            MenuItem('Fetch Quotes', menu_action='app.fetch_quotes'),
+            MenuItem('Fetch Quotes', menu_action='app.fetch_quotes', id='fetch_quotes_menu_item'),
             MenuItem('Change Currency', disabled=True),
             name='Tools',
             id='tools_menu',
@@ -369,6 +407,7 @@ class CluecoinsApp(App):
         self._db_conn: Connection | None = None
         self._status_text = 'not connected'
         self._log_history: list = []
+        self._is_busy: bool = False
 
     def log_write(self, message) -> None:
         self._log_history.append(message)
@@ -377,8 +416,14 @@ class CluecoinsApp(App):
         except NoMatches:
             pass
 
+    def refresh_menu_state(self) -> None:
+        if isinstance(self.screen, CluecoinsMenuScreen):
+            self.screen._apply_db_state()
+            self.screen._apply_busy_state()
+
     def database_connect(self, db_path: Path) -> None:
         self._db_path = db_path
+        self.refresh_menu_state()
 
         res = subprocess.run(
             ('file', str(db_path)),
