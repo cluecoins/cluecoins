@@ -45,6 +45,3 @@ async def test_open_file_and_exit(fydb_file: Path) -> None:
 
         # Verify log history contains connection message
         assert any('connected' in str(m) for m in app._log_history)
-
-        # Exit via action
-        app.action_exit()

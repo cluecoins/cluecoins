@@ -51,6 +51,10 @@ quote-style = "single"
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
+filterwarnings = [
+    # Textual message pump cleanup hits a ContextVar mismatch on Python 3.14 during run_test() teardown
+    "ignore::pytest.PytestUnraisableExceptionWarning",
+]
 
 [tool.mypy]
 python_version = "3.12"
