@@ -46,8 +46,12 @@
     padding: 1;
     margin: 1;
     border: solid grey;
-    # layer: below;
+    height: 1fr;
     align: left top;
+}
+
+#log {
+    height: 10;
 }
 
 .horizontal {

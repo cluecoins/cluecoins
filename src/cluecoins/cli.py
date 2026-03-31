@@ -44,7 +44,7 @@ async def convert(base_currency: str, db_path: str, log: Callable) -> None:
     storage = LocalStorage()
 
     async with storage.connect(), conn:
-        cache = CurrencyBeaconQuoteProvider(storage)
+        cache = CurrencyBeaconQuoteProvider(storage, log)
         await storage.create_schema()
 
         await set_base_currency(conn, base_currency)
