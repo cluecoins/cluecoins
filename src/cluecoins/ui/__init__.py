@@ -401,11 +401,11 @@ class CluecoinsApp(App):
         'menu': CluecoinsMenuScreen,
     }
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         self._db_path: Path | None = None
         self._db_conn: Connection | None = None
-        self._status_text = 'not connected'
+        self._status_text: str = 'not connected'
         self._log_history: list = []
         self._is_busy: bool = False
 

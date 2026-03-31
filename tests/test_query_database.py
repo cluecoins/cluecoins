@@ -21,7 +21,7 @@ def test_connect_local_db_valid(fydb_file: Path) -> None:
 def test_connect_local_db_invalid_extension(tmp_path: Path) -> None:
     path = tmp_path / 'test.db'
     path.touch()
-    with pytest.raises(Exception):
+    with pytest.raises(Exception):  # noqa: B017
         connect_local_db(str(path))
 
 
@@ -79,9 +79,7 @@ async def test_update_account(bluecoins_conn: aiosqlite.Connection) -> None:
     await update_account(bluecoins_conn, 1, new_rate)
 
     row = await (
-        await bluecoins_conn.execute(
-            'SELECT accountConversionRateNew FROM ACCOUNTSTABLE WHERE accountsTableID = 1'
-        )
+        await bluecoins_conn.execute('SELECT accountConversionRateNew FROM ACCOUNTSTABLE WHERE accountsTableID = 1')
     ).fetchone()
     assert row is not None
     assert Decimal(str(row[0])) == new_rate
