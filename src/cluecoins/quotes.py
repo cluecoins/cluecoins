@@ -1,3 +1,4 @@
+from collections.abc import Callable
 from datetime import date
 from datetime import datetime
 from datetime import timedelta
@@ -8,15 +9,15 @@ import aiohttp
 from aiosqlite import IntegrityError
 
 from cluecoins.storage import LocalStorage
-from cluecoins.ui import LOG
 
 CB_API_URL = 'https://api.currencybeacon.com'
 CB_API_KEY = env.get('CB_API_KEY', 'BF178aNPAdfPW6YjqbYGL5CmztO4qLNY')
 
 
 class CurrencyBeaconQuoteProvider:
-    def __init__(self, storage: LocalStorage) -> None:
+    def __init__(self, storage: LocalStorage, log: Callable) -> None:
         self._storage = storage
+        self._log = log
         self._quote_currencies: set[str] = set()
         self._request_count = 0
 
@@ -26,8 +27,6 @@ class CurrencyBeaconQuoteProvider:
         base_currency: str,
     ) -> None:
         """Getting quotes from the Exchangerate API and writing them to the local database"""
-        from cluecoins.ui import LOG
-
         _key = CB_API_KEY
 
         # FIXME: Overkill
@@ -40,9 +39,9 @@ class CurrencyBeaconQuoteProvider:
             'symbols': ','.join(self._quote_currencies),
         }
         async with aiohttp.ClientSession() as session:
-            LOG.write(f'{params}')
-            LOG.write(f'Fetching quotes for {base_currency} {date_}...')
-            LOG.write(f'Request count: {self._request_count}')
+            self._log(f'{params}')
+            self._log(f'Fetching quotes for {base_currency} {date_}...')
+            self._log(f'Request count: {self._request_count}')
             self._request_count += 1
 
             async with session.get(
@@ -52,11 +51,11 @@ class CurrencyBeaconQuoteProvider:
                 response_json = await response.json()
 
         for quote_date, items in response_json['response'].items():
-            LOG.write(f'{quote_date}, {len(items)}')
+            self._log(f'{quote_date}, {len(items)}')
             for quote_currency, rate in items.items():
-                LOG.write(f'{quote_currency}: {rate}')
+                self._log(f'{quote_currency}: {rate}')
                 if rate is None:
-                    LOG.write(f'No rate for {quote_date} {base_currency} {quote_currency}')
+                    self._log(f'No rate for {quote_date} {base_currency} {quote_currency}')
                     continue
                 try:
                     await self._storage.add_quote(
@@ -84,6 +83,6 @@ class CurrencyBeaconQuoteProvider:
             rate = await self._storage.get_quote(date_, base_currency, quote_currency)
 
         if not rate:
-            LOG.write(f'No quote for {date_} {base_currency} {quote_currency}. Unknown quote currency?')
+            self._log(f'No quote for {date_} {base_currency} {quote_currency}. Unknown quote currency?')
 
         return rate
