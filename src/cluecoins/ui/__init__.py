@@ -281,12 +281,18 @@ class TableRowsScreen(BaseScreen):
         yield self._data
         yield Container(
             Button('Back', id='table-rows-back'),
-            classes='button-group',
+            id='table-rows-footer',
         )
+
+    def _go_back(self) -> None:
+        self.app.switch_screen(StatisticsScreen())
 
     @on(Button.Pressed, '#table-rows-back')
     async def on_back_pressed(self, event):
-        self.app.switch_screen(StatisticsScreen())
+        self._go_back()
+
+    def key_escape(self) -> None:
+        self._go_back()
 
 
 class StatisticsScreen(BaseScreen):

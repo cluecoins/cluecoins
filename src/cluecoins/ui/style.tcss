@@ -82,6 +82,12 @@ Button {
     margin: 2;
 }
 
+#table-rows-footer {
+    dock: bottom;
+    height: 5;
+    align: center middle;
+}
+
 #main_menu_button {
     dock: right;
     width: 1;
