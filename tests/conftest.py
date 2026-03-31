@@ -1,6 +1,17 @@
-# import sqlite3
+import sqlite3
+from pathlib import Path
+
+import pytest
+
+
+@pytest.fixture
+def fydb_file(tmp_path: Path) -> Path:
+    path = tmp_path / 'test.fydb'
+    sqlite3.connect(path).close()
+    return path
+
+
 # from collections.abc import Iterable
-# from pathlib import Path
 # from sqlite3 import Connection
 
 # import pytest

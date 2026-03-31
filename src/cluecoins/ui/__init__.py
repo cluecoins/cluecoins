@@ -1,6 +1,5 @@
 import logging
 import subprocess
-import sys
 from collections import defaultdict
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -427,7 +426,7 @@ class CluecoinsApp(App):
 
     @on(Button.Pressed, '#exit')
     async def on_exit_pressed(self, event):
-        sys.exit(0)
+        self.exit()
 
     @on(Button.Pressed, '#open_file_button')
     async def on_open_file_pressed(self, event):
