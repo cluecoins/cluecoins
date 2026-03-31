@@ -1,13 +1,4 @@
 
-#menu_bar {
-    dock: top;
-    height: 1;
-    width: 100%;
-    layout: horizontal;
-    layer: above;
-
-}
-
 #status_bar {
     dock: bottom;
     height: 1;
@@ -17,36 +8,10 @@
     background: black;
 }
 
-.menu_column {
-    dock: top;
-    offset: 1 1;
-    layout: vertical;
-    layer: above;
-    width: 22;
-    height: auto;
-
-    border-left: outer grey;
-}
-
-.menu_button {
-    height: 1;
-    width: 22;
-    margin: 0;
-    padding: 0 1;
-    border: none;
-    layer: above;
-    text-align: left;
-}
-
-.hidden {
-    display: none;
-}
-
 .window {
     padding: 1;
     margin: 1;
     border: solid grey;
-    # layer: below;
     align: left top;
 }
 
@@ -76,9 +41,4 @@ Screen {
 
 Button {
     margin: 2;
-}
-
-#main_menu_button {
-    dock: right;
-    width: 1;
 }

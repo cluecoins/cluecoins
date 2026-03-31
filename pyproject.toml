@@ -27,7 +27,7 @@ dev = [
     "ruff",
     "mypy",
     "pytest",
-    "pytest-async",
+    "pytest-asyncio",
 ]
 
 [project.scripts]
@@ -49,9 +49,13 @@ isort = { force-single-line = true, known-first-party = ["cluecoins"] }
 [tool.ruff.format]
 quote-style = "single"
 
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+
 [tool.mypy]
 python_version = "3.12"
 strict = false
+ignore_missing_imports = true
 
 [build-system]
 requires = ["uv_build"]
