@@ -16,6 +16,17 @@ def fydb_file(tmp_path: Path) -> Path:
 
 
 @pytest.fixture
+def fydb_with_tables(tmp_path: Path) -> Path:
+    path = tmp_path / 'test_tables.fydb'
+    conn = sqlite3.connect(path)
+    conn.execute('CREATE TABLE TESTTABLE (id INTEGER PRIMARY KEY, name TEXT)')
+    conn.execute("INSERT INTO TESTTABLE VALUES (1, 'foo')")
+    conn.commit()
+    conn.close()
+    return path
+
+
+@pytest.fixture
 async def local_storage(tmp_path: Path) -> AsyncGenerator[LocalStorage, None]:
     db_path = tmp_path / 'db.sqlite3'
     cache_path = tmp_path / 'cache.sqlite3'

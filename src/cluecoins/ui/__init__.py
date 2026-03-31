@@ -247,6 +247,10 @@ class StatisticsScreen(BaseScreen):
     def compose_content(self) -> ComposeResult:
         yield Static('Database table row counts')
         yield self._data
+        yield Container(
+            Button('Back', id='statistics-back'),
+            id='statistics-footer',
+        )
 
     async def on_data_table_row_selected(self, event: DataTable.RowSelected):
         table_name = str(event.row_key.value)
@@ -254,8 +258,15 @@ class StatisticsScreen(BaseScreen):
         if db_path:
             self.app.switch_screen(TableRowsScreen(db_path=db_path, table_name=table_name))
 
-    async def key_escape(self):
-        self.app.switch_screen(StatisticsScreen())
+    def _go_back(self) -> None:
+        self.app.switch_screen(MainScreen())
+
+    @on(Button.Pressed, '#statistics-back')
+    async def on_back_pressed(self, event):
+        self._go_back()
+
+    def key_escape(self) -> None:
+        self._go_back()
 
 
 class OpenFileScreen(BaseScreen):
@@ -299,6 +310,12 @@ class OpenFileScreen(BaseScreen):
 class CluecoinsMenuScreen(MenuScreen):
     """MenuScreen that hosts the dropdown menu widgets."""
 
+    app: 'CluecoinsApp'
+
+    async def on_mount(self) -> None:
+        if not self.app._db_path:
+            self.query_one('#statistics_menu_item', MenuItem).disabled = True
+
     def compose(self) -> ComposeResult:
         yield from super().compose()
         yield Menu(
@@ -317,7 +334,7 @@ class CluecoinsMenuScreen(MenuScreen):
             id='edit_menu',
         )
         yield Menu(
-            MenuItem('Statistics', menu_action='app.statistics'),
+            MenuItem('Statistics', menu_action='app.statistics', id='statistics_menu_item'),
             MenuItem('Cached Quotes', menu_action='app.cached_quotes'),
             name='View',
             id='view_menu',
