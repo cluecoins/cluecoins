@@ -3,6 +3,7 @@
 from collections.abc import AsyncIterator
 from datetime import datetime
 from decimal import Decimal
+from typing import Any
 
 from aiosqlite import Connection
 from aiosqlite import connect
@@ -62,6 +63,104 @@ async def update_account(conn: Connection, id_: int, rate: Decimal) -> None:
         'UPDATE ACCOUNTSTABLE SET accountConversionRateNew = ? WHERE accountsTableID = ?',
         (str(rate), id_),
     )
+
+
+_TRANSACTION_COLS = [
+    'transactionsTableID', 'date', 'amount', 'transactionCurrency',
+    'conversionRateNew', 'transactionTypeID', 'categoryID',
+    'accountID', 'accountPairID', 'notes', 'itemName',
+]
+_TRANSACTION_SORT_MAP = {c: f't.{c}' for c in _TRANSACTION_COLS if c != 'itemName'}
+_TRANSACTION_SORT_MAP['itemName'] = 'i.itemName'
+
+_ACCOUNT_COLS = [
+    'accountsTableID', 'accountName', 'accountTypeID',
+    'accountCurrency', 'accountConversionRateNew', 'creditLimit',
+]
+
+_ITEM_COLS = ['itemTableID', 'itemName', 'itemAutoFillVisibility']
+
+
+async def fetch_transactions_page(
+    conn: Connection,
+    offset: int = 0,
+    limit: int = 1000,
+    sort_col: str = 'date',
+    sort_asc: bool = False,
+) -> tuple[list[str], list[Any]]:
+    sql_col = _TRANSACTION_SORT_MAP.get(sort_col, 't.date')
+    direction = 'ASC' if sort_asc else 'DESC'
+    async with conn.execute(
+        f"""SELECT t.transactionsTableID, t.date, t.amount, t.transactionCurrency,
+               t.conversionRateNew, t.transactionTypeID, t.categoryID,
+               t.accountID, t.accountPairID, t.notes,
+               i.itemName
+            FROM TRANSACTIONSTABLE t
+            LEFT JOIN ITEMTABLE i ON i.itemTableID = t.itemID
+            ORDER BY {sql_col} {direction}
+            LIMIT ? OFFSET ?""",
+        (limit, offset),
+    ) as cur:
+        rows: list[Any] = list(await cur.fetchall())
+    return _TRANSACTION_COLS, rows
+
+
+async def count_transactions(conn: Connection) -> int:
+    async with conn.execute('SELECT COUNT(*) FROM TRANSACTIONSTABLE') as cur:
+        row = await cur.fetchone()
+    return row[0] if row else 0
+
+
+async def fetch_accounts_page(
+    conn: Connection,
+    offset: int = 0,
+    limit: int = 1000,
+    sort_col: str = 'accountsTableID',
+    sort_asc: bool = True,
+) -> tuple[list[str], list[Any]]:
+    sql_col = sort_col if sort_col in set(_ACCOUNT_COLS) else 'accountsTableID'
+    direction = 'ASC' if sort_asc else 'DESC'
+    cols = ', '.join(_ACCOUNT_COLS)
+    async with conn.execute(
+        f'SELECT {cols} FROM ACCOUNTSTABLE ORDER BY {sql_col} {direction} LIMIT ? OFFSET ?',
+        (limit, offset),
+    ) as cur:
+        rows: list[Any] = list(await cur.fetchall())
+    return _ACCOUNT_COLS, rows
+
+
+async def count_accounts(conn: Connection) -> int:
+    async with conn.execute('SELECT COUNT(*) FROM ACCOUNTSTABLE') as cur:
+        row = await cur.fetchone()
+    return row[0] if row else 0
+
+
+async def fetch_items_page(
+    conn: Connection,
+    offset: int = 0,
+    limit: int = 1000,
+    sort_col: str = 'itemTableID',
+    sort_asc: bool = True,
+) -> tuple[list[str], list[Any]]:
+    sql_col = sort_col if sort_col in set(_ITEM_COLS) else 'itemTableID'
+    direction = 'ASC' if sort_asc else 'DESC'
+    cols = ', '.join(_ITEM_COLS)
+    async with conn.execute(
+        f'SELECT {cols} FROM ITEMTABLE ORDER BY {sql_col} {direction} LIMIT ? OFFSET ?',
+        (limit, offset),
+    ) as cur:
+        rows: list[Any] = list(await cur.fetchall())
+    return _ITEM_COLS, rows
+
+
+async def count_items(conn: Connection) -> int:
+    async with conn.execute('SELECT COUNT(*) FROM ITEMTABLE') as cur:
+        row = await cur.fetchone()
+    return row[0] if row else 0
+
+
+async def rename_item(conn: Connection, item_id: int, new_name: str) -> None:
+    await conn.execute('UPDATE ITEMTABLE SET itemName = ? WHERE itemTableID = ?', (new_name, item_id))
 
 
 # async def find_account(conn: Connection, account_name: str, revert: bool = False) -> Any:
