@@ -21,6 +21,13 @@ from zandev_textual_widgets import MenuScreen
 from zandev_textual_widgets.menu import Menu
 from zandev_textual_widgets.menu import MenuItem
 
+from cluecoins.database import count_accounts
+from cluecoins.database import count_items
+from cluecoins.database import count_transactions
+from cluecoins.database import fetch_accounts_page
+from cluecoins.database import fetch_items_page
+from cluecoins.database import fetch_transactions_page
+from cluecoins.database import rename_item
 from cluecoins.storage import LocalStorage
 from cluecoins.ui import menu
 
@@ -275,6 +282,218 @@ class StatisticsScreen(BaseScreen):
         self._go_back()
 
 
+class PaginatedTableScreen(BaseScreen):
+    PAGE_SIZE = 1000
+    _default_sort_col: str
+    _default_sort_asc: bool
+
+    def __init__(self) -> None:
+        super().__init__()
+        self._page = 0
+        self._sort_col = self._default_sort_col
+        self._sort_asc = self._default_sort_asc
+        self._total_rows = 0
+        self._columns_added = False
+        self._data: DataTable = DataTable()
+
+    async def _fetch_page(self, conn: 'Connection', offset: int, limit: int, sort_col: str, sort_asc: bool) -> tuple:
+        raise NotImplementedError
+
+    async def _count_rows(self, conn: 'Connection') -> int:
+        raise NotImplementedError
+
+    def _title(self) -> str:
+        raise NotImplementedError
+
+    def _back_screen(self) -> Screen:
+        raise NotImplementedError
+
+    async def on_mount(self) -> None:  # type: ignore[override]
+        super().on_mount()
+        await self._reload()
+
+    async def _reload(self) -> None:
+        db_path = self.app._db_path
+        if not db_path:
+            return
+        offset = self._page * self.PAGE_SIZE
+        async with connect(db_path) as conn:
+            self._total_rows = await self._count_rows(conn)
+            columns, rows = await self._fetch_page(conn, offset, self.PAGE_SIZE, self._sort_col, self._sort_asc)
+        self._data.clear()
+        if not self._columns_added:
+            for col in columns:
+                self._data.add_column(col, key=col)
+            self._columns_added = True
+        for row in rows:
+            self._data.add_row(*[str(v) if v is not None else '' for v in row])
+        self._update_page_info()
+
+    def _update_page_info(self) -> None:
+        total_pages = max(1, (self._total_rows + self.PAGE_SIZE - 1) // self.PAGE_SIZE)
+        info = f'Page {self._page + 1} / {total_pages}  ({self._total_rows} rows)'
+        self.query_one('#page-info', Static).update(info)
+        self.query_one('#page-prev', Button).disabled = self._page == 0
+        self.query_one('#page-next', Button).disabled = (self._page + 1) >= total_pages
+
+    async def on_data_table_header_selected(self, event: DataTable.HeaderSelected) -> None:
+        col_key = str(event.column_key.value)
+        if col_key == self._sort_col:
+            self._sort_asc = not self._sort_asc
+        else:
+            self._sort_col = col_key
+            self._sort_asc = True
+        self._page = 0
+        await self._reload()
+
+    @on(Button.Pressed, '#page-prev')
+    async def on_prev_pressed(self, event: Button.Pressed) -> None:
+        self._page -= 1
+        await self._reload()
+
+    @on(Button.Pressed, '#page-next')
+    async def on_next_pressed(self, event: Button.Pressed) -> None:
+        self._page += 1
+        await self._reload()
+
+    def compose_content(self) -> ComposeResult:
+        yield Static(self._title())
+        yield self._data
+        yield Container(
+            Button('Back', id='paged-back'),
+            Button('◀ Prev', id='page-prev'),
+            Static('', id='page-info'),
+            Button('Next ▶', id='page-next'),
+            id='pagination-footer',
+        )
+
+    def _go_back(self) -> None:
+        self.app.switch_screen(self._back_screen())
+
+    @on(Button.Pressed, '#paged-back')
+    async def on_back_pressed(self, event: Button.Pressed) -> None:
+        self._go_back()
+
+    def key_escape(self) -> None:
+        self._go_back()
+
+
+class TransactionsScreen(PaginatedTableScreen):
+    _default_sort_col = 'date'
+    _default_sort_asc = False
+
+    async def _fetch_page(self, conn: 'Connection', offset: int, limit: int, sort_col: str, sort_asc: bool) -> tuple:
+        return await fetch_transactions_page(conn, offset, limit, sort_col, sort_asc)
+
+    async def _count_rows(self, conn: 'Connection') -> int:
+        return await count_transactions(conn)
+
+    def _title(self) -> str:
+        return 'Transactions'
+
+    def _back_screen(self) -> Screen:
+        return MainScreen()
+
+
+class AccountsScreen(PaginatedTableScreen):
+    _default_sort_col = 'accountsTableID'
+    _default_sort_asc = True
+
+    async def _fetch_page(self, conn: 'Connection', offset: int, limit: int, sort_col: str, sort_asc: bool) -> tuple:
+        return await fetch_accounts_page(conn, offset, limit, sort_col, sort_asc)
+
+    async def _count_rows(self, conn: 'Connection') -> int:
+        return await count_accounts(conn)
+
+    def _title(self) -> str:
+        return 'Accounts'
+
+    def _back_screen(self) -> Screen:
+        return MainScreen()
+
+
+class ItemsScreen(PaginatedTableScreen):
+    _default_sort_col = 'itemTableID'
+    _default_sort_asc = True
+
+    def __init__(self) -> None:
+        super().__init__()
+        self._data.cursor_type = 'row'
+        self._selected_item_id: int | None = None
+        self._selected_item_name: str = ''
+
+    async def _fetch_page(self, conn: 'Connection', offset: int, limit: int, sort_col: str, sort_asc: bool) -> tuple:
+        return await fetch_items_page(conn, offset, limit, sort_col, sort_asc)
+
+    async def _count_rows(self, conn: 'Connection') -> int:
+        return await count_items(conn)
+
+    def _title(self) -> str:
+        return 'Items'
+
+    def _back_screen(self) -> Screen:
+        return MainScreen()
+
+    def compose_content(self) -> ComposeResult:
+        yield Static(self._title())
+        yield self._data
+        yield Container(
+            Button('Back', id='paged-back'),
+            Button('◀ Prev', id='page-prev'),
+            Static('', id='page-info'),
+            Button('Next ▶', id='page-next'),
+            Button('Edit', id='items-edit', disabled=True),
+            id='pagination-footer',
+        )
+
+    async def on_data_table_row_selected(self, event: DataTable.RowSelected) -> None:
+        row = self._data.get_row(event.row_key)
+        self._selected_item_id = int(row[0])
+        self._selected_item_name = str(row[1])
+        self.query_one('#items-edit', Button).disabled = False
+
+    @on(Button.Pressed, '#items-edit')
+    async def on_edit_pressed(self, event: Button.Pressed) -> None:
+        if self._selected_item_id is not None:
+            self.app.switch_screen(RenameItemScreen(self._selected_item_id, self._selected_item_name))
+
+
+class RenameItemScreen(BaseScreen):
+    def __init__(self, item_id: int, item_name: str) -> None:
+        super().__init__()
+        self._item_id = item_id
+        self._item_name = item_name
+
+    def compose_content(self) -> ComposeResult:
+        from textual.widgets import Input
+
+        yield Static(f'Rename item: {self._item_name}')
+        yield Input(value=self._item_name, placeholder='Item name', id='rename-input')
+        yield Container(
+            Button('Cancel', id='rename-cancel'),
+            Button('Save', id='rename-save'),
+            classes='button-group',
+        )
+
+    @on(Button.Pressed, '#rename-save')
+    async def on_save_pressed(self, event: Button.Pressed) -> None:
+        from textual.widgets import Input
+
+        new_name = self.query_one('#rename-input', Input).value.strip()
+        if not new_name:
+            return
+        db_path = self.app._db_path
+        if db_path:
+            async with connect(db_path) as conn:
+                await rename_item(conn, self._item_id, new_name)
+                await conn.commit()
+        self.app.switch_screen(ItemsScreen())
+
+    @on(Button.Pressed, '#rename-cancel')
+    async def on_cancel_pressed(self, event: Button.Pressed) -> None:
+        self.app.switch_screen(ItemsScreen())
+
+
 class OpenFileScreen(BaseScreen):
     def __init__(self):
         super().__init__()
@@ -322,6 +541,9 @@ class CluecoinsMenuScreen(MenuScreen):
         '#statistics_menu_item',
         '#fetch_quotes_menu_item',
         '#disconnect_menu_item',
+        '#transactions_menu_item',
+        '#accounts_menu_item',
+        '#labels_menu_item',
     )
     _BUSY_LOCKED_IDS: ClassVar[tuple[str, ...]] = (
         '#open_file_menu_item',
@@ -329,6 +551,9 @@ class CluecoinsMenuScreen(MenuScreen):
         '#fetch_quotes_menu_item',
         '#disconnect_menu_item',
         '#cached_quotes_menu_item',
+        '#transactions_menu_item',
+        '#accounts_menu_item',
+        '#labels_menu_item',
     )
 
     def _apply_db_state(self) -> None:
@@ -365,9 +590,9 @@ class CluecoinsMenuScreen(MenuScreen):
             id='file_menu',
         )
         yield Menu(
-            MenuItem('Transactions', disabled=True),
-            MenuItem('Accounts', disabled=True),
-            MenuItem('Labels', disabled=True),
+            MenuItem('Transactions', menu_action='app.transactions', id='transactions_menu_item'),
+            MenuItem('Accounts', menu_action='app.accounts', id='accounts_menu_item'),
+            MenuItem('Items', menu_action='app.labels', id='labels_menu_item'),
             name='Edit',
             id='edit_menu',
         )
@@ -462,6 +687,15 @@ class CluecoinsApp(App):
 
     def action_fetch_quotes(self) -> None:
         self.switch_screen(FetchQuotesScreen())
+
+    def action_transactions(self) -> None:
+        self.switch_screen(TransactionsScreen())
+
+    def action_accounts(self) -> None:
+        self.switch_screen(AccountsScreen())
+
+    def action_labels(self) -> None:
+        self.switch_screen(ItemsScreen())
 
 
 def run() -> None:

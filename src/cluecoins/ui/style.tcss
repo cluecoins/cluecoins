@@ -53,3 +53,16 @@ Screen {
 Button {
     margin: 2;
 }
+
+#pagination-footer {
+    dock: bottom;
+    height: 5;
+    align: center middle;
+    layout: horizontal;
+}
+
+#page-info {
+    width: 1fr;
+    text-align: center;
+    content-align: center middle;
+}
